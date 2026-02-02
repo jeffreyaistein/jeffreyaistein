@@ -2,10 +2,13 @@
 Jeffrey AIstein - Database Base Configuration
 """
 
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
 from config import settings
+
+logger = structlog.get_logger()
 
 
 class Base(DeclarativeBase):
@@ -34,8 +37,13 @@ def _get_async_database_url(url: str) -> str:
 
 
 # Create async engine
+_db_url = _get_async_database_url(settings.database_url)
+# Log sanitized URL (hide password)
+_sanitized_url = _db_url.split("@")[-1] if "@" in _db_url else _db_url
+logger.info("database_engine_init", host=_sanitized_url)
+
 engine = create_async_engine(
-    _get_async_database_url(settings.database_url),
+    _db_url,
     echo=settings.debug,
     future=True,
 )

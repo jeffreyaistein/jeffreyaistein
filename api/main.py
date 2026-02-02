@@ -243,8 +243,8 @@ async def ready(db: AsyncSession = Depends(get_db)):
         await db.execute(select(1))
         db_ok = True
     except Exception as e:
-        db_error = str(e)
-        logger.warning("health_check_db_failed", error=db_error)
+        db_error = f"{type(e).__name__}: {e}"
+        logger.warning("health_check_db_failed", error=db_error, exc_info=True)
 
     # Check X bot status
     x_bot_ok = True

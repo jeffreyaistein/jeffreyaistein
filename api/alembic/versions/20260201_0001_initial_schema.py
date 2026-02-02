@@ -102,7 +102,7 @@ def upgrade() -> None:
         sa.Column('user_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=True),
         sa.Column('type', sa.String(30), nullable=False),
         sa.Column('content', sa.Text, nullable=False),
-        sa.Column('embedding', sa.Column('embedding', sa.LargeBinary), nullable=True),  # Will be vector(1536)
+        sa.Column('embedding', sa.LargeBinary, nullable=True),  # Placeholder - will be recreated as vector(1536) if available
         sa.Column('confidence', sa.Float, server_default='1.0'),
         sa.Column('source_event_ids', postgresql.ARRAY(postgresql.UUID(as_uuid=True)), server_default='{}'),
         sa.Column('metadata', postgresql.JSONB, server_default='{}'),

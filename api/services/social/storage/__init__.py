@@ -32,6 +32,7 @@ from services.social.storage.base import (
     SETTING_LAST_TIMELINE_POST,
     SETTING_NEXT_TIMELINE_POST,
 )
+from services.social.types import PostStatus, PostType
 from services.social.storage.memory import (
     InMemoryDraftRepository,
     InMemoryInboxRepository,
@@ -169,6 +170,8 @@ __all__ = [
     "DraftStatus",
     "InboxEntry",
     "PostEntry",
+    "PostStatus",
+    "PostType",
     "ReplyLogEntry",
     "Settings",
     "ThreadState",

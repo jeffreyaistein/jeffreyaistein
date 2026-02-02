@@ -1,0 +1,31 @@
+# Jeffrey AIstein - Fly.io Configuration
+app = "jeffreyaistein"
+primary_region = "lax"
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[env]
+  # Non-secret environment variables
+  DEBUG = "false"
+  SAFE_MODE = "true"
+  APPROVAL_REQUIRED = "true"
+  X_BOT_ENABLED = "false"
+
+# Secrets are set via: fly secrets set KEY=value
+# Required secrets:
+#   ANTHROPIC_API_KEY
+#   X_BEARER_TOKEN
+#   X_API_KEY
+#   X_API_SECRET
+#   X_ACCESS_TOKEN
+#   X_ACCESS_TOKEN_SECRET
+#   X_BOT_USER_ID
+#   SECRET_KEY
+#   DATABASE_URL (if using Postgres)

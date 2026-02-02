@@ -13,9 +13,20 @@ class Base(DeclarativeBase):
     pass
 
 
+# Convert database URL for async SQLAlchemy
+# Fly Postgres uses postgres:// but SQLAlchemy needs postgresql+asyncpg://
+def _get_async_database_url(url: str) -> str:
+    """Convert database URL to async-compatible format."""
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return url
+
+
 # Create async engine
 engine = create_async_engine(
-    settings.database_url.replace("postgresql://", "postgresql+asyncpg://"),
+    _get_async_database_url(settings.database_url),
     echo=settings.debug,
     future=True,
 )

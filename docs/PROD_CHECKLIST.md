@@ -175,30 +175,29 @@ Invoke-WebRequest -Uri "https://jeffreyaistein.fly.dev/health/ready" | ConvertFr
 
 ## 6. Redis Readiness + Leader Lock
 
-### Status: COMPLETE (2026-02-02 09:41 UTC) - NO REDIS
+### Status: COMPLETE (2026-02-02 09:55 UTC) ✅
 
-### Check Redis URL
+### Redis Created
 ```powershell
-fly secrets list --app jeffreyaistein | Select-String "REDIS_URL"
+fly redis create --name jeffreyaistein-redis --region iad --no-replicas --enable-eviction
 ```
-**Result**: REDIS_URL not configured
+**Result**: Upstash Redis created (pay-as-you-go, $0.20/100K commands)
 
-### Leader Lock Behavior
-- If REDIS_URL exists: Implement leader lock for schedulers
-- If REDIS_URL missing: Force X_BOT_ENABLED=false to prevent duplicate schedulers ✅
+### REDIS_URL Set
+```powershell
+fly secrets set "REDIS_URL=redis://default:****@fly-jeffreyaistein-redis.upstash.io:6379" --app jeffreyaistein
+```
+
+### Verification
+```powershell
+Invoke-RestMethod -Uri "https://jeffreyaistein.fly.dev/health/ready"
+# Shows: "redis": true
+```
 
 ### Current Configuration
-- REDIS_URL: Not configured
-- X_BOT_ENABLED: false (prevents duplicate scheduler issues)
-- Redis-based features (leader lock, caching) deferred until REDIS_URL is added
-
-### Note
-Redis is optional for initial launch. To add Redis later:
-```powershell
-fly redis create --name jeffreyaistein-redis --app jeffreyaistein
-# Then set REDIS_URL from the output
-fly secrets set REDIS_URL=redis://... --app jeffreyaistein
-```
+- REDIS_URL: ✅ Configured (Upstash)
+- X_BOT_ENABLED: false (will enable next)
+- Leader lock: Ready to use when X bot is enabled
 
 ---
 
@@ -272,7 +271,7 @@ fly secrets set SENTRY_DSN=https://... --app jeffreyaistein
 | 3. Uptime Settings | ✅ COMPLETE | None |
 | 4. Secrets | ✅ COMPLETE | None |
 | 5. Postgres | ✅ COMPLETE | None |
-| 6. Redis/Leader Lock | ✅ COMPLETE (no Redis) | X_BOT_ENABLED=false |
+| 6. Redis/Leader Lock | ✅ COMPLETE | Upstash Redis configured |
 | 7. X Bot Safe Launch | ⏸️ DEFERRED | Awaiting Redis setup |
 | 8. Sentry | ⏸️ DEFERRED | Optional - not blocking |
 

@@ -1262,8 +1262,7 @@ async def admin_toggle_kill_switch(request: Request):
     """
     Toggle kill switch (admin only).
 
-    Note: This cannot dynamically change env vars at runtime.
-    Returns instructions for how to enable/disable SAFE_MODE.
+    Note: Use PATCH /api/admin/social/settings to change SAFE_MODE at runtime.
     """
     await verify_admin_key(request)
 
@@ -1271,12 +1270,63 @@ async def admin_toggle_kill_switch(request: Request):
 
     return {
         "current_state": current,
-        "note": "SAFE_MODE cannot be toggled at runtime. To change it:",
-        "instructions": [
-            "1. Edit your .env file: SAFE_MODE=true (to enable) or SAFE_MODE=false (to disable)",
-            "2. Restart the API server",
-            "3. Or use your deployment platform's environment variable settings",
-        ],
+        "note": "Use PATCH /api/admin/social/settings to toggle SAFE_MODE at runtime without restart",
+        "example": {
+            "method": "PATCH",
+            "url": "/api/admin/social/settings",
+            "body": {"safe_mode": False, "approval_required": True},
+        },
+    }
+
+
+class UpdateSettingsRequest(BaseModel):
+    """Request body for updating social bot settings."""
+    safe_mode: Optional[bool] = None
+    approval_required: Optional[bool] = None
+
+
+@app.patch("/api/admin/social/settings")
+async def admin_update_social_settings(request: Request, body: UpdateSettingsRequest):
+    """
+    Update X bot settings at runtime (admin only).
+
+    This stores settings in the database, which take precedence over environment variables.
+    Changes take effect immediately without restart.
+
+    Settings:
+    - safe_mode: If true, prevents all posting (read-only mode)
+    - approval_required: If true, drafts require admin approval before posting
+    """
+    await verify_admin_key(request)
+
+    from services.social.storage import (
+        get_settings_repository,
+        SETTING_SAFE_MODE,
+        SETTING_APPROVAL_REQUIRED,
+    )
+
+    settings_repo = get_settings_repository()
+    updated = {}
+
+    if body.safe_mode is not None:
+        await settings_repo.set(SETTING_SAFE_MODE, "true" if body.safe_mode else "false")
+        updated["safe_mode"] = body.safe_mode
+
+    if body.approval_required is not None:
+        await settings_repo.set(SETTING_APPROVAL_REQUIRED, "true" if body.approval_required else "false")
+        updated["approval_required"] = body.approval_required
+
+    # Get current effective values
+    safe_mode_db = await settings_repo.get(SETTING_SAFE_MODE)
+    approval_db = await settings_repo.get(SETTING_APPROVAL_REQUIRED)
+
+    return {
+        "updated": updated,
+        "current": {
+            "safe_mode": safe_mode_db == "true" if safe_mode_db else os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes"),
+            "approval_required": approval_db == "true" if approval_db else os.getenv("APPROVAL_REQUIRED", "true").lower() in ("true", "1", "yes"),
+        },
+        "note": "Settings stored in database take precedence over environment variables",
     }
 
 

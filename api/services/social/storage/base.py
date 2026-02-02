@@ -281,3 +281,7 @@ class SettingsRepository(ABC):
 SETTING_LAST_MENTION_ID = "last_mention_id"
 SETTING_LAST_TIMELINE_POST = "last_timeline_post_at"
 SETTING_NEXT_TIMELINE_POST = "next_timeline_post_at"
+
+# Runtime toggleable settings (can override env vars)
+SETTING_SAFE_MODE = "safe_mode"
+SETTING_APPROVAL_REQUIRED = "approval_required"

@@ -39,6 +39,8 @@ from services.social.storage.base import (
     SETTING_LAST_MENTION_ID,
     SETTING_LAST_TIMELINE_POST,
     SETTING_NEXT_TIMELINE_POST,
+    SETTING_SAFE_MODE,
+    SETTING_APPROVAL_REQUIRED,
 )
 from services.social.types import PostStatus, PostType
 from services.social.storage.memory import (
@@ -193,6 +195,28 @@ def reset_all_repositories():
     _settings_repo = None
 
 
+async def get_runtime_setting(key: str, env_var: str, default: str = "false") -> bool:
+    """
+    Get a runtime setting, checking database first then falling back to env var.
+
+    Args:
+        key: The setting key in the database (e.g., SETTING_SAFE_MODE)
+        env_var: The environment variable name (e.g., "SAFE_MODE")
+        default: Default value if neither db nor env var is set
+
+    Returns:
+        True if the setting is enabled (value is "true", "1", or "yes")
+    """
+    settings_repo = get_settings_repository()
+    db_value = await settings_repo.get(key)
+
+    if db_value is not None:
+        return db_value.lower() in ("true", "1", "yes")
+
+    env_value = os.getenv(env_var, default)
+    return env_value.lower() in ("true", "1", "yes")
+
+
 __all__ = [
     # Data classes
     "DraftEntry",
@@ -234,6 +258,9 @@ __all__ = [
     "SETTING_LAST_MENTION_ID",
     "SETTING_LAST_TIMELINE_POST",
     "SETTING_NEXT_TIMELINE_POST",
+    "SETTING_SAFE_MODE",
+    "SETTING_APPROVAL_REQUIRED",
     # Utility
     "_use_memory_storage",
+    "get_runtime_setting",
 ]

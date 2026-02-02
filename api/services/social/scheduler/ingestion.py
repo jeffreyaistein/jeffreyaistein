@@ -25,10 +25,13 @@ from services.social.storage import (
     ReplyLogRepository,
     SettingsRepository,
     SETTING_LAST_MENTION_ID,
+    SETTING_SAFE_MODE,
+    SETTING_APPROVAL_REQUIRED,
     get_draft_repository,
     get_inbox_repository,
     get_reply_log_repository,
     get_settings_repository,
+    get_runtime_setting,
 )
 from services.social.content import get_content_generator
 
@@ -291,9 +294,9 @@ class IngestionLoop:
             mention: The XTweet mention
             author: The XUser author
         """
-        # Check if SAFE_MODE or APPROVAL_REQUIRED
-        safe_mode = os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes")
-        approval_required = os.getenv("APPROVAL_REQUIRED", "true").lower() in ("true", "1", "yes")
+        # Check if SAFE_MODE or APPROVAL_REQUIRED (database settings override env vars)
+        safe_mode = await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false")
+        approval_required = await get_runtime_setting(SETTING_APPROVAL_REQUIRED, "APPROVAL_REQUIRED", "true")
 
         if safe_mode and not approval_required:
             # Safe mode without approval - just skip

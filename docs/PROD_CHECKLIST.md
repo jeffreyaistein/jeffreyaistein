@@ -121,7 +121,7 @@ fly status --app jeffreyaistein
 
 ## 4. Secrets Presence Verification
 
-### Status: PENDING
+### Status: COMPLETE (2026-02-02 08:55 UTC)
 
 ### Command
 ```powershell
@@ -132,27 +132,27 @@ fly secrets list --app jeffreyaistein
 
 | Secret Name | Required | Present |
 |-------------|----------|---------|
-| ANTHROPIC_API_KEY | Yes | ? |
-| X_API_KEY | Yes | ? |
-| X_API_SECRET | Yes | ? |
-| X_ACCESS_TOKEN | Yes | ? |
-| X_ACCESS_TOKEN_SECRET | Yes | ? |
-| X_BOT_USER_ID | Yes | ? |
-| X_BEARER_TOKEN | Optional | ? |
-| SECRET_KEY | Yes | ? |
-| ADMIN_API_KEY | Yes | ? |
-| DATABASE_URL | If DB attached | ? |
-| REDIS_URL | Optional | ? |
-| SENTRY_DSN | Optional | ? |
-| HELIUS_API_KEY | Optional | ? |
-| HELIUS_RPC_URL | Optional | ? |
-| VOYAGE_API_KEY | Optional | ? |
+| ANTHROPIC_API_KEY | Yes | ✅ |
+| X_API_KEY | Yes | ✅ |
+| X_API_SECRET | Yes | ✅ |
+| X_ACCESS_TOKEN | Yes | ✅ |
+| X_ACCESS_TOKEN_SECRET | Yes | ✅ |
+| X_BOT_USER_ID | Yes | ✅ |
+| X_BEARER_TOKEN | Optional | ✅ |
+| SECRET_KEY | Yes | ✅ |
+| ADMIN_API_KEY | Yes | ✅ |
+| DATABASE_URL | If DB attached | ✅ |
+| REDIS_URL | Optional | ❌ (not configured) |
+| SENTRY_DSN | Optional | ❌ (not configured) |
+| HELIUS_API_KEY | Optional | ❌ (not configured) |
+| HELIUS_RPC_URL | Optional | ❌ (not configured) |
+| VOYAGE_API_KEY | Optional | ❌ (not configured) |
 
 ---
 
 ## 5. Postgres Readiness + Migrations
 
-### Status: PENDING
+### Status: COMPLETE (2026-02-02 09:40 UTC)
 
 ### Verify DATABASE_URL
 ```powershell
@@ -175,34 +175,53 @@ Invoke-WebRequest -Uri "https://jeffreyaistein.fly.dev/health/ready" | ConvertFr
 
 ## 6. Redis Readiness + Leader Lock
 
-### Status: PENDING
+### Status: COMPLETE (2026-02-02 09:41 UTC) - NO REDIS
 
 ### Check Redis URL
 ```powershell
 fly secrets list --app jeffreyaistein | Select-String "REDIS_URL"
 ```
+**Result**: REDIS_URL not configured
 
 ### Leader Lock Behavior
 - If REDIS_URL exists: Implement leader lock for schedulers
-- If REDIS_URL missing: Force X_BOT_ENABLED=false to prevent duplicate schedulers
+- If REDIS_URL missing: Force X_BOT_ENABLED=false to prevent duplicate schedulers ✅
 
-### Verification
-Check `/api/admin/social/status` for leader lock status.
+### Current Configuration
+- REDIS_URL: Not configured
+- X_BOT_ENABLED: false (prevents duplicate scheduler issues)
+- Redis-based features (leader lock, caching) deferred until REDIS_URL is added
+
+### Note
+Redis is optional for initial launch. To add Redis later:
+```powershell
+fly redis create --name jeffreyaistein-redis --app jeffreyaistein
+# Then set REDIS_URL from the output
+fly secrets set REDIS_URL=redis://... --app jeffreyaistein
+```
 
 ---
 
 ## 7. X Bot Safe Launch
 
-### Status: PENDING
+### Status: DEFERRED (2026-02-02 09:42 UTC)
 
-### Required Configuration
-```env
-X_BOT_ENABLED=true
-SAFE_MODE=true           # Prevents posting
-APPROVAL_REQUIRED=true   # Requires admin approval
+### Current Configuration
+- X_BOT_ENABLED: false (disabled)
+- Reason: Redis not configured; X bot disabled to prevent multi-machine duplication
+
+### Required for X Bot Activation
+1. Add REDIS_URL for leader lock
+2. Set X_BOT_ENABLED=true
+3. Set SAFE_MODE=true (prevents posting)
+4. Set APPROVAL_REQUIRED=true (requires admin approval)
+
+```powershell
+# When ready to enable X bot:
+fly secrets set X_BOT_ENABLED=true SAFE_MODE=true APPROVAL_REQUIRED=true --app jeffreyaistein
 ```
 
-### Verification Steps
+### Verification Steps (when X bot is enabled)
 1. Confirm ingestion loop runs without posting
 2. Confirm drafts are created (not posted)
 3. Test admin endpoints:
@@ -211,8 +230,9 @@ APPROVAL_REQUIRED=true   # Requires admin approval
    - `POST /api/admin/social/drafts/{id}/approve`
    - `POST /api/admin/social/drafts/{id}/reject`
 
-### Disabling SAFE_MODE Later
+### Go-Live Checklist (for later)
 ```powershell
+# After confirming safe mode works:
 fly secrets set SAFE_MODE=false --app jeffreyaistein
 ```
 
@@ -220,18 +240,26 @@ fly secrets set SAFE_MODE=false --app jeffreyaistein
 
 ## 8. Observability (Sentry)
 
-### Status: PENDING
+### Status: DEFERRED (2026-02-02 09:43 UTC)
 
 ### Check SENTRY_DSN
 ```powershell
 fly secrets list --app jeffreyaistein | Select-String "SENTRY_DSN"
 ```
+**Result**: SENTRY_DSN not configured
 
-### Verify Sentry Integration
-If SENTRY_DSN is set, Sentry should initialize on app startup.
-Check Sentry dashboard for:
-- App connected
-- Heartbeat events
+### Note
+Sentry is optional for initial launch. The app runs without error reporting for now.
+Structured logging via `structlog` is active and visible in `fly logs`.
+
+### To Add Sentry Later
+1. Create project at https://sentry.io
+2. Get DSN from project settings
+3. Set the secret:
+```powershell
+fly secrets set SENTRY_DSN=https://... --app jeffreyaistein
+```
+4. Verify in Sentry dashboard
 
 ---
 
@@ -239,14 +267,25 @@ Check Sentry dashboard for:
 
 | Item | Status | Blockers |
 |------|--------|----------|
-| 1. Health Endpoints | COMPLETE | None |
-| 2. Fly Status | COMPLETE | None |
-| 3. Uptime Settings | IN PROGRESS | Awaiting deployment |
-| 4. Secrets | PENDING | |
-| 5. Postgres | PENDING | Database connection failing |
-| 6. Redis/Leader Lock | PENDING | |
-| 7. X Bot Safe Launch | PENDING | |
-| 8. Sentry | PENDING | |
+| 1. Health Endpoints | ✅ COMPLETE | None |
+| 2. Fly Status | ✅ COMPLETE | None |
+| 3. Uptime Settings | ✅ COMPLETE | None |
+| 4. Secrets | ✅ COMPLETE | None |
+| 5. Postgres | ✅ COMPLETE | None |
+| 6. Redis/Leader Lock | ✅ COMPLETE (no Redis) | X_BOT_ENABLED=false |
+| 7. X Bot Safe Launch | ⏸️ DEFERRED | Awaiting Redis setup |
+| 8. Sentry | ⏸️ DEFERRED | Optional - not blocking |
+
+### Overall: READY FOR 3-DAY STABLE RUN ✅
+
+The app is deployed and stable. Core functionality works:
+- Health endpoints responding
+- Database connected and migrated
+- 1 machine always running (min_machines=1)
+
+Deferred features (not blocking stability):
+- X Bot: Disabled until Redis is added
+- Sentry: Optional observability
 
 ---
 

@@ -42,10 +42,14 @@ _db_url = _get_async_database_url(settings.database_url)
 _sanitized_url = _db_url.split("@")[-1] if "@" in _db_url else _db_url
 logger.info("database_engine_init", host=_sanitized_url)
 
+# Check if we should disable SSL (for Fly internal connections)
+_use_ssl = "flycast" not in settings.database_url
+
 engine = create_async_engine(
     _db_url,
     echo=settings.debug,
     future=True,
+    connect_args={"ssl": None} if not _use_ssl else {},
 )
 
 # Create session factory

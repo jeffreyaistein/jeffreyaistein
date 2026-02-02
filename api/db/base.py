@@ -15,12 +15,21 @@ class Base(DeclarativeBase):
 
 # Convert database URL for async SQLAlchemy
 # Fly Postgres uses postgres:// but SQLAlchemy needs postgresql+asyncpg://
+# Also converts sslmode parameter to asyncpg-compatible ssl parameter
 def _get_async_database_url(url: str) -> str:
     """Convert database URL to async-compatible format."""
+    # Convert postgres:// to postgresql+asyncpg://
     if url.startswith("postgres://"):
-        return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
     elif url.startswith("postgresql://"):
-        return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+    # Remove sslmode parameter - asyncpg handles SSL differently
+    # For Fly internal connections, SSL is not needed
+    if "sslmode=disable" in url:
+        url = url.replace("?sslmode=disable", "")
+        url = url.replace("&sslmode=disable", "")
+
     return url
 
 

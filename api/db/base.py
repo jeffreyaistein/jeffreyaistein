@@ -27,11 +27,10 @@ def _get_async_database_url(url: str) -> str:
     elif url.startswith("postgresql://"):
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-    # Remove sslmode parameter - asyncpg handles SSL differently
-    # For Fly internal connections, SSL is not needed
+    # Convert sslmode=disable to asyncpg's ssl=disable format
+    # For Fly internal connections (flycast), SSL is not needed
     if "sslmode=disable" in url:
-        url = url.replace("?sslmode=disable", "")
-        url = url.replace("&sslmode=disable", "")
+        url = url.replace("sslmode=disable", "ssl=disable")
 
     return url
 
@@ -42,14 +41,10 @@ _db_url = _get_async_database_url(settings.database_url)
 _sanitized_url = _db_url.split("@")[-1] if "@" in _db_url else _db_url
 logger.info("database_engine_init", host=_sanitized_url)
 
-# Check if we should disable SSL (for Fly internal connections)
-_use_ssl = "flycast" not in settings.database_url
-
 engine = create_async_engine(
     _db_url,
     echo=settings.debug,
     future=True,
-    connect_args={"ssl": None} if not _use_ssl else {},
 )
 
 # Create session factory

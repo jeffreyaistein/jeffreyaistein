@@ -1,0 +1,56 @@
+# Jeffrey AIstein - API Dependencies
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+websockets==12.0
+
+# Database
+sqlalchemy[asyncio]==2.0.25
+asyncpg==0.29.0
+alembic==1.13.1
+pgvector==0.2.4
+
+# Redis
+redis==5.0.1
+
+# Validation
+pydantic==2.5.3
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# LLM Providers
+anthropic==0.18.1
+openai==1.12.0
+
+# HTTP Client
+httpx==0.26.0
+
+# Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Observability
+structlog==24.1.0
+sentry-sdk[fastapi]==1.40.0
+opentelemetry-api==1.22.0
+opentelemetry-sdk==1.22.0
+opentelemetry-instrumentation-fastapi==0.43b0
+
+# Celery
+celery[redis]==5.3.6
+
+# Utils
+python-dotenv==1.0.0
+orjson==3.9.13
+
+# Testing (dev)
+pytest==7.4.4
+pytest-asyncio==0.23.4
+pytest-cov==4.1.0
+httpx==0.26.0
+
+# Linting (dev)
+ruff==0.2.0
+mypy==1.8.0

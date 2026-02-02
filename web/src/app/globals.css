@@ -1,0 +1,209 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Matrix Theme Base Styles */
+:root {
+  --matrix-green: #00ff41;
+  --matrix-cyan: #00ffcc;
+  --matrix-dark: #0d0d0d;
+  --matrix-darker: #050505;
+}
+
+body {
+  background-color: var(--matrix-dark);
+  color: var(--matrix-green);
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--matrix-darker);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--matrix-green);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--matrix-cyan);
+}
+
+/* Matrix text effects */
+.matrix-text {
+  color: var(--matrix-green);
+  text-shadow: 0 0 10px var(--matrix-green);
+}
+
+.matrix-text-cyan {
+  color: var(--matrix-cyan);
+  text-shadow: 0 0 10px var(--matrix-cyan);
+}
+
+/* Terminal-style borders */
+.matrix-border {
+  border: 1px solid var(--matrix-green);
+  box-shadow:
+    0 0 5px var(--matrix-green),
+    inset 0 0 5px rgba(0, 255, 65, 0.1);
+}
+
+.matrix-border-cyan {
+  border: 1px solid var(--matrix-cyan);
+  box-shadow:
+    0 0 5px var(--matrix-cyan),
+    inset 0 0 5px rgba(0, 255, 204, 0.1);
+}
+
+/* Hologram container */
+.hologram-container {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(0, 255, 204, 0.1) 0%, transparent 70%);
+}
+
+/* Scanline overlay */
+.scanline-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.2) 2px,
+    rgba(0, 0, 0, 0.2) 4px
+  );
+  pointer-events: none;
+  animation: scanline 8s linear infinite;
+}
+
+/* Chat styles */
+.chat-message {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.chat-message-user {
+  background: rgba(0, 255, 204, 0.1);
+  border-left: 2px solid var(--matrix-cyan);
+}
+
+.chat-message-assistant {
+  background: rgba(0, 255, 65, 0.1);
+  border-left: 2px solid var(--matrix-green);
+}
+
+.typing-indicator {
+  display: inline-block;
+}
+
+.typing-indicator span {
+  animation: blink 1s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Button styles */
+.matrix-button {
+  background: transparent;
+  border: 1px solid var(--matrix-green);
+  color: var(--matrix-green);
+  padding: 0.5rem 1rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.matrix-button:hover {
+  background: var(--matrix-green);
+  color: var(--matrix-dark);
+  box-shadow: 0 0 15px var(--matrix-green);
+}
+
+.matrix-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input styles */
+.matrix-input {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--matrix-green);
+  color: var(--matrix-green);
+  padding: 0.75rem;
+  font-family: inherit;
+  width: 100%;
+}
+
+.matrix-input:focus {
+  outline: none;
+  box-shadow: 0 0 10px var(--matrix-green);
+}
+
+.matrix-input::placeholder {
+  color: rgba(0, 255, 65, 0.5);
+}
+
+/* Meter styles */
+.meter-track {
+  height: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--matrix-cyan);
+  position: relative;
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--matrix-cyan), var(--matrix-green));
+  transition: width 0.5s ease;
+}
+
+.meter-fill.ath-glow {
+  animation: glow-pulse 1s ease-in-out infinite;
+  box-shadow: 0 0 20px var(--matrix-cyan);
+}
+
+/* Panel styles */
+.stats-panel {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+}
+
+/* Digital rain effect (for background) */
+.digital-rain {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.15;
+}

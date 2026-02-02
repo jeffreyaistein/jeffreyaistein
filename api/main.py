@@ -238,11 +238,13 @@ async def health():
 async def ready(db: AsyncSession = Depends(get_db)):
     """Readiness check with dependency status."""
     db_ok = False
+    db_error = None
     try:
         await db.execute(select(1))
         db_ok = True
-    except Exception:
-        pass
+    except Exception as e:
+        db_error = str(e)
+        logger.warning("health_check_db_failed", error=db_error)
 
     # Check X bot status
     x_bot_ok = True

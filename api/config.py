@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     x_access_token: str = ""
     x_access_token_secret: str = ""
     x_bearer_token: str = ""
+    x_bot_user_id: str = ""
+    x_bot_enabled: bool = False
     safe_mode: bool = False
     approval_required: bool = True
     x_hourly_post_limit: int = 5
@@ -54,8 +56,17 @@ class Settings(BaseSettings):
     token_contract_address: str = ""
     token_chain: str = "solana"
     coingecko_api_key: str = ""
+    helius_api_key: str = ""
+    helius_rpc_url: str = ""
+
+    # Embeddings
+    voyage_api_key: str = ""
+
+    # Monitoring
+    sentry_dsn: str = ""
 
     # Security
+    secret_key: str = "CHANGE_THIS"
     session_secret: str = "CHANGE_THIS"
     admin_api_key: str = "CHANGE_THIS"
     cors_origins: str = "http://localhost:3000"

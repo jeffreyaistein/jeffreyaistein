@@ -19,6 +19,8 @@ from services.social.storage import (
     UserLimitRepository,
     get_thread_repository,
     get_user_limit_repository,
+    get_runtime_setting,
+    SETTING_SAFE_MODE,
 )
 from services.social.types import MentionFilterReason, ThreadContext, XTweet
 
@@ -35,9 +37,9 @@ def get_max_replies_per_user_per_day() -> int:
     return int(os.getenv("X_MAX_REPLIES_PER_USER_PER_DAY", "10"))
 
 
-def is_safe_mode() -> bool:
-    """Check if safe mode is enabled."""
-    return os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes")
+async def is_safe_mode() -> bool:
+    """Check if safe mode is enabled (DB overrides env)."""
+    return await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false")
 
 
 # Keywords that indicate user wants us to stop
@@ -177,7 +179,7 @@ class ConversationContextBuilder:
             StopCondition with should_stop flag and reason
         """
         # Check safe mode
-        if is_safe_mode():
+        if await is_safe_mode():
             return StopCondition(
                 should_stop=True,
                 reason=MentionFilterReason.SAFE_MODE,

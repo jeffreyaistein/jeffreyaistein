@@ -24,9 +24,12 @@ from services.social.storage import (
     SettingsRepository,
     SETTING_LAST_TIMELINE_POST,
     SETTING_NEXT_TIMELINE_POST,
+    SETTING_SAFE_MODE,
+    SETTING_APPROVAL_REQUIRED,
     get_draft_repository,
     get_post_repository,
     get_settings_repository,
+    get_runtime_setting,
 )
 from services.social.types import PostStatus, PostType
 
@@ -53,14 +56,14 @@ def get_daily_limit() -> int:
     return int(os.getenv("X_DAILY_POST_LIMIT", "20"))
 
 
-def is_safe_mode() -> bool:
-    """Check if safe mode is enabled."""
-    return os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes")
+async def is_safe_mode() -> bool:
+    """Check if safe mode is enabled (DB overrides env)."""
+    return await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false")
 
 
-def is_approval_required() -> bool:
-    """Check if approval is required for posts."""
-    return os.getenv("APPROVAL_REQUIRED", "true").lower() in ("true", "1", "yes")
+async def is_approval_required() -> bool:
+    """Check if approval is required for posts (DB overrides env)."""
+    return await get_runtime_setting(SETTING_APPROVAL_REQUIRED, "APPROVAL_REQUIRED", "true")
 
 
 class TimelinePosterLoop:
@@ -152,8 +155,8 @@ class TimelinePosterLoop:
             "timeline_poster_started",
             interval=self.interval,
             jitter=self.jitter,
-            safe_mode=is_safe_mode(),
-            approval_required=is_approval_required(),
+            safe_mode=await is_safe_mode(),
+            approval_required=await is_approval_required(),
         )
 
         # Calculate initial next post time
@@ -241,7 +244,7 @@ class TimelinePosterLoop:
         }
 
         # Check safe mode
-        if is_safe_mode():
+        if await is_safe_mode():
             logger.info("timeline_poster_safe_mode_skip")
             result["skipped"] = True
             result["reason"] = "safe_mode"
@@ -278,7 +281,7 @@ class TimelinePosterLoop:
         content = await self._generate_content()
 
         # Check if approval required
-        if is_approval_required():
+        if await is_approval_required():
             # Create draft
             draft = DraftEntry(
                 id="",

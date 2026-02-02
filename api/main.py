@@ -35,8 +35,11 @@ from services.social.storage import (
     get_draft_repository,
     get_post_repository,
     get_settings_repository,
+    get_runtime_setting,
     PostEntry,
     PostStatus,
+    SETTING_SAFE_MODE,
+    SETTING_APPROVAL_REQUIRED,
 )
 from services.social.types import PostType
 
@@ -1078,12 +1081,16 @@ async def admin_get_social_status(request: Request):
     ingestion_loop = get_ingestion_loop()
     timeline_loop = get_timeline_loop()
 
+    # Get runtime settings (DB overrides env)
+    safe_mode = await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false")
+    approval_required = await get_runtime_setting(SETTING_APPROVAL_REQUIRED, "APPROVAL_REQUIRED", "true")
+
     return {
         "enabled": is_x_bot_enabled(),
         "ingestion": ingestion_loop.get_stats() if ingestion_loop else None,
         "timeline": timeline_loop.get_stats() if timeline_loop else None,
-        "safe_mode": os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes"),
-        "approval_required": os.getenv("APPROVAL_REQUIRED", "true").lower() in ("true", "1", "yes"),
+        "safe_mode": safe_mode,
+        "approval_required": approval_required,
     }
 
 
@@ -1148,8 +1155,8 @@ async def admin_approve_draft(draft_id: str, request: Request):
     if draft.status != DraftStatus.PENDING:
         raise HTTPException(status_code=400, detail=f"Draft is not pending (status: {draft.status})")
 
-    # Check safe mode
-    if os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes"):
+    # Check safe mode (DB overrides env)
+    if await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false"):
         raise HTTPException(status_code=400, detail="Cannot post in SAFE_MODE")
 
     # Post to X
@@ -1230,12 +1237,13 @@ async def admin_get_social_settings(request: Request):
     """Get X bot settings (admin only)."""
     await verify_admin_key(request)
 
-    settings_repo = get_settings_repository()
+    # Get runtime settings (DB overrides env)
+    safe_mode = await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false")
+    approval_required = await get_runtime_setting(SETTING_APPROVAL_REQUIRED, "APPROVAL_REQUIRED", "true")
 
-    # Get current settings from env (these are read-only at runtime for now)
     return {
-        "safe_mode": os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes"),
-        "approval_required": os.getenv("APPROVAL_REQUIRED", "true").lower() in ("true", "1", "yes"),
+        "safe_mode": safe_mode,
+        "approval_required": approval_required,
         "x_bot_enabled": is_x_bot_enabled(),
         "poll_interval_seconds": int(os.getenv("X_POLL_INTERVAL_SECONDS", "45")),
         "timeline_interval_seconds": int(os.getenv("X_TIMELINE_POST_INTERVAL_SECONDS", "10800")),
@@ -1251,9 +1259,10 @@ async def admin_get_social_settings(request: Request):
 async def admin_get_kill_switch(request: Request):
     """Get kill switch status (admin only). Kill switch = SAFE_MODE."""
     await verify_admin_key(request)
+    safe_mode = await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false")
     return {
-        "enabled": os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes"),
-        "note": "To toggle SAFE_MODE, update the .env file and restart the server, or use your deployment platform's config.",
+        "enabled": safe_mode,
+        "note": "Use PATCH /api/admin/social/settings to toggle SAFE_MODE at runtime without restart",
     }
 
 
@@ -1266,7 +1275,7 @@ async def admin_toggle_kill_switch(request: Request):
     """
     await verify_admin_key(request)
 
-    current = os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes")
+    current = await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false")
 
     return {
         "current_state": current,

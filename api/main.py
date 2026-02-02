@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import List, Optional
 
+import redis.asyncio as aioredis
 import structlog
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request, Response, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -246,6 +247,21 @@ async def ready(db: AsyncSession = Depends(get_db)):
         db_error = f"{type(e).__name__}: {e}"
         logger.warning("health_check_db_failed", error=db_error, exc_info=True)
 
+    # Check Redis connectivity
+    redis_ok = False
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        try:
+            redis_client = aioredis.from_url(redis_url)
+            await redis_client.ping()
+            redis_ok = True
+            await redis_client.close()
+        except Exception as e:
+            logger.warning("health_check_redis_failed", error=str(e))
+    else:
+        # No Redis URL configured - mark as N/A (not an error)
+        redis_ok = None
+
     # Check X bot status
     x_bot_ok = True
     x_bot_running = False
@@ -264,7 +280,7 @@ async def ready(db: AsyncSession = Depends(get_db)):
         "ready": db_ok,
         "checks": {
             "database": db_ok,
-            "redis": True,  # TODO: Add real check
+            "redis": redis_ok,
             "llm": True,  # TODO: Add real check
             "x_bot": x_bot_ok if is_x_bot_enabled() else None,
         },

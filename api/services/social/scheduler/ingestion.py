@@ -1,12 +1,14 @@
 """
 Jeffrey AIstein - Mention Ingestion Loop
 
-Polls X for new mentions and stores them for processing.
+Polls X for new mentions, stores them, and generates draft replies.
 """
 
 import asyncio
 import os
 import signal
+import uuid
+from datetime import datetime
 from typing import Optional
 
 import structlog
@@ -15,15 +17,20 @@ from services.social.providers import XProvider, XProviderError, XRateLimitError
 from services.social.scheduler.clock import Clock, SystemClock
 from services.social.scorer import compute_quality_score, get_quality_threshold
 from services.social.storage import (
+    DraftEntry,
+    DraftStatus,
     InboxEntry,
     InboxRepository,
+    PostType,
     ReplyLogRepository,
     SettingsRepository,
     SETTING_LAST_MENTION_ID,
+    get_draft_repository,
     get_inbox_repository,
     get_reply_log_repository,
     get_settings_repository,
 )
+from services.social.content import get_content_generator
 
 logger = structlog.get_logger()
 
@@ -245,6 +252,16 @@ class IngestionLoop:
             stats["stored"] += 1
             self.total_stored += 1
 
+            # Generate draft reply immediately
+            try:
+                await self._generate_draft_reply(mention, author)
+            except Exception as e:
+                logger.exception(
+                    "ingestion_draft_generation_failed",
+                    tweet_id=mention.id,
+                    error=str(e),
+                )
+
         # Update last mention ID for pagination
         if newest_id:
             await self.settings_repo.set(SETTING_LAST_MENTION_ID, newest_id)
@@ -265,3 +282,57 @@ class IngestionLoop:
             "total_duplicates": self.total_duplicates,
             "running": self._running,
         }
+
+    async def _generate_draft_reply(self, mention, author) -> None:
+        """
+        Generate a draft reply for a mention.
+
+        Args:
+            mention: The XTweet mention
+            author: The XUser author
+        """
+        # Check if SAFE_MODE or APPROVAL_REQUIRED
+        safe_mode = os.getenv("SAFE_MODE", "").lower() in ("true", "1", "yes")
+        approval_required = os.getenv("APPROVAL_REQUIRED", "true").lower() in ("true", "1", "yes")
+
+        if safe_mode and not approval_required:
+            # Safe mode without approval - just skip
+            logger.info(
+                "ingestion_safe_mode_skip",
+                tweet_id=mention.id,
+            )
+            return
+
+        # Generate reply using content generator
+        content_gen = get_content_generator()
+
+        logger.info(
+            "ingestion_generating_reply",
+            tweet_id=mention.id,
+            author=author.username,
+        )
+
+        reply_text = await content_gen.generate_reply(
+            mention_text=mention.text,
+            author_username=author.username,
+            thread_context=None,  # Could enhance with thread context later
+        )
+
+        # Create draft
+        draft_repo = get_draft_repository()
+        draft = DraftEntry(
+            id=str(uuid.uuid4()),
+            text=reply_text,
+            post_type=PostType.REPLY,
+            reply_to_id=mention.id,
+            status=DraftStatus.PENDING,
+            created_at=datetime.utcnow(),
+        )
+        await draft_repo.save(draft)
+
+        logger.info(
+            "ingestion_draft_created",
+            draft_id=draft.id,
+            tweet_id=mention.id,
+            reply_length=len(reply_text),
+        )

@@ -635,21 +635,41 @@ class RealXProvider(XProvider):
     async def health_check(self) -> bool:
         """
         Check if the provider is healthy by calling GET /2/users/me.
+
+        Note: /2/users/me requires OAuth 1.0a user context, not Bearer token.
         """
-        if not self.bearer_token:
+        if not self._oauth_signer:
+            logger.warning("x_api_health_check_failed", error="OAuth 1.0a credentials not configured")
             return False
 
         try:
             client = await self._get_client()
             url = f"{X_API_BASE}/users/me"
 
+            # Use OAuth 1.0a signing (required for /users/me endpoint)
+            headers = self._oauth_signer.sign_request("GET", url)
+
             response = await client.get(
                 url,
-                headers=self._get_bearer_headers(),
+                headers=headers,
                 timeout=10.0,
             )
 
-            return response.status_code == 200
+            if response.status_code == 200:
+                logger.info("x_api_health_check_passed")
+                return True
+            else:
+                # Log the actual error from X API
+                try:
+                    body = response.json()
+                except Exception:
+                    body = response.text[:500]
+                logger.warning(
+                    "x_api_health_check_failed",
+                    status_code=response.status_code,
+                    response=body,
+                )
+                return False
         except Exception as e:
             logger.warning("x_api_health_check_failed", error=str(e))
             return False

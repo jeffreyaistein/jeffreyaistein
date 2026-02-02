@@ -218,8 +218,14 @@ class ConversationListResponse(BaseModel):
 
 
 # ===========================================
-# Health Endpoints
+# Root & Health Endpoints
 # ===========================================
+
+
+@app.get("/")
+async def root():
+    """Root endpoint - confirms API is running."""
+    return {"ok": True, "service": "Jeffrey AIstein API", "version": "0.1.0"}
 
 
 @app.get("/health")

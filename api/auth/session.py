@@ -195,13 +195,23 @@ async def verify_admin_key(request: Request) -> bool:
     """
     Verify admin API key from header.
     Used for admin-only endpoints.
+
+    Supports two header formats:
+    - X-Admin-Key: <key>
+    - Authorization: Bearer <key>
     """
     api_key = request.headers.get("X-Admin-Key")
+
+    # Also check Authorization: Bearer header for convenience
+    if not api_key:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            api_key = auth_header[7:]  # Strip "Bearer " prefix
 
     if not api_key:
         raise HTTPException(
             status_code=401,
-            detail="Admin API key required"
+            detail="Admin API key required (use X-Admin-Key or Authorization: Bearer)"
         )
 
     if api_key != settings.admin_api_key:

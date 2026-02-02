@@ -30,6 +30,9 @@ database_url = os.getenv(
     "DATABASE_URL",
     "postgresql://aistein:aistein_dev_password@localhost:5432/aistein",
 )
+# Convert postgres:// to postgresql:// for SQLAlchemy compatibility
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
 config.set_main_option("sqlalchemy.url", database_url)
 
 

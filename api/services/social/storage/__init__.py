@@ -2,6 +2,14 @@
 Jeffrey AIstein - Storage Package
 
 Factory functions for repository access.
+
+Storage Selection Logic:
+- If USE_MEMORY_STORAGE=true: Use in-memory storage (for testing/dev)
+- If DATABASE_URL is set and USE_MEMORY_STORAGE is not true: Use Postgres
+- Otherwise: Fallback to in-memory storage
+
+In production (Fly.io), DATABASE_URL is always set, so Postgres is used by default.
+Set USE_MEMORY_STORAGE=true explicitly to use memory storage for development.
 """
 
 import os
@@ -57,12 +65,20 @@ _settings_repo: Optional[SettingsRepository] = None
 
 
 def _use_memory_storage() -> bool:
-    """Check if we should use in-memory storage."""
-    # For now, always use memory storage since Docker is blocked
-    # In production, check for database URL
-    db_url = os.getenv("DATABASE_URL")
+    """
+    Check if we should use in-memory storage.
+
+    Priority:
+    1. USE_MEMORY_STORAGE=true -> Use memory (explicit override)
+    2. DATABASE_URL set -> Use Postgres
+    3. No DATABASE_URL -> Use memory (fallback for local dev)
+    """
     use_memory = os.getenv("USE_MEMORY_STORAGE", "").lower() in ("true", "1", "yes")
-    return use_memory or not db_url
+    if use_memory:
+        return True
+
+    db_url = os.getenv("DATABASE_URL")
+    return not db_url
 
 
 def get_inbox_repository() -> InboxRepository:
@@ -73,8 +89,9 @@ def get_inbox_repository() -> InboxRepository:
             logger.info("storage_init", repo="inbox", type="memory")
             _inbox_repo = InMemoryInboxRepository()
         else:
-            # TODO: Implement PostgresInboxRepository
-            raise NotImplementedError("Postgres storage not yet implemented")
+            from services.social.storage.postgres import PostgresInboxRepository
+            logger.info("storage_init", repo="inbox", type="postgres")
+            _inbox_repo = PostgresInboxRepository()
     return _inbox_repo
 
 
@@ -86,7 +103,9 @@ def get_post_repository() -> PostRepository:
             logger.info("storage_init", repo="post", type="memory")
             _post_repo = InMemoryPostRepository()
         else:
-            raise NotImplementedError("Postgres storage not yet implemented")
+            from services.social.storage.postgres import PostgresPostRepository
+            logger.info("storage_init", repo="post", type="postgres")
+            _post_repo = PostgresPostRepository()
     return _post_repo
 
 
@@ -98,7 +117,9 @@ def get_draft_repository() -> DraftRepository:
             logger.info("storage_init", repo="draft", type="memory")
             _draft_repo = InMemoryDraftRepository()
         else:
-            raise NotImplementedError("Postgres storage not yet implemented")
+            from services.social.storage.postgres import PostgresDraftRepository
+            logger.info("storage_init", repo="draft", type="postgres")
+            _draft_repo = PostgresDraftRepository()
     return _draft_repo
 
 
@@ -110,7 +131,9 @@ def get_reply_log_repository() -> ReplyLogRepository:
             logger.info("storage_init", repo="reply_log", type="memory")
             _reply_log_repo = InMemoryReplyLogRepository()
         else:
-            raise NotImplementedError("Postgres storage not yet implemented")
+            from services.social.storage.postgres import PostgresReplyLogRepository
+            logger.info("storage_init", repo="reply_log", type="postgres")
+            _reply_log_repo = PostgresReplyLogRepository()
     return _reply_log_repo
 
 
@@ -122,7 +145,9 @@ def get_thread_repository() -> ThreadRepository:
             logger.info("storage_init", repo="thread", type="memory")
             _thread_repo = InMemoryThreadRepository()
         else:
-            raise NotImplementedError("Postgres storage not yet implemented")
+            from services.social.storage.postgres import PostgresThreadRepository
+            logger.info("storage_init", repo="thread", type="postgres")
+            _thread_repo = PostgresThreadRepository()
     return _thread_repo
 
 
@@ -134,7 +159,9 @@ def get_user_limit_repository() -> UserLimitRepository:
             logger.info("storage_init", repo="user_limit", type="memory")
             _user_limit_repo = InMemoryUserLimitRepository()
         else:
-            raise NotImplementedError("Postgres storage not yet implemented")
+            from services.social.storage.postgres import PostgresUserLimitRepository
+            logger.info("storage_init", repo="user_limit", type="postgres")
+            _user_limit_repo = PostgresUserLimitRepository()
     return _user_limit_repo
 
 
@@ -146,7 +173,9 @@ def get_settings_repository() -> SettingsRepository:
             logger.info("storage_init", repo="settings", type="memory")
             _settings_repo = InMemorySettingsRepository()
         else:
-            raise NotImplementedError("Postgres storage not yet implemented")
+            from services.social.storage.postgres import PostgresSettingsRepository
+            logger.info("storage_init", repo="settings", type="postgres")
+            _settings_repo = PostgresSettingsRepository()
     return _settings_repo
 
 
@@ -205,4 +234,6 @@ __all__ = [
     "SETTING_LAST_MENTION_ID",
     "SETTING_LAST_TIMELINE_POST",
     "SETTING_NEXT_TIMELINE_POST",
+    # Utility
+    "_use_memory_storage",
 ]

@@ -21,7 +21,16 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Enable extensions
     op.execute('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"')
-    op.execute('CREATE EXTENSION IF NOT EXISTS "vector"')
+    # pgvector extension - optional, used for memory/RAG features
+    # Skip if not available (common on Fly Postgres without pgvector image)
+    op.execute('''
+        DO $$
+        BEGIN
+            CREATE EXTENSION IF NOT EXISTS "vector";
+        EXCEPTION WHEN OTHERS THEN
+            RAISE NOTICE 'pgvector extension not available, skipping';
+        END $$;
+    ''')
 
     # ===========================================
     # CORE TABLES (Phase 1)
@@ -100,9 +109,17 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
         sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now()),
     )
-    # Drop and recreate embedding column with proper vector type
+    # Drop and recreate embedding column with proper vector type if pgvector is available
     op.execute('ALTER TABLE memories DROP COLUMN IF EXISTS embedding')
-    op.execute('ALTER TABLE memories ADD COLUMN embedding vector(1536)')
+    op.execute('''
+        DO $$
+        BEGIN
+            ALTER TABLE memories ADD COLUMN embedding vector(1536);
+        EXCEPTION WHEN undefined_object THEN
+            -- vector type not available, skip embedding column
+            RAISE NOTICE 'pgvector not available, memories.embedding column skipped';
+        END $$;
+    ''')
     op.create_index('ix_memories_user_id', 'memories', ['user_id'])
     op.create_index('ix_memories_type', 'memories', ['type'])
     op.create_index('ix_memories_user_type', 'memories', ['user_id', 'type'])

@@ -20,6 +20,7 @@ interface TTSDebugInfo {
   lastBytes: number | null
   lastPlayError: string | null
   lastAudioEnded: boolean
+  amplitude: number
 }
 
 interface UseTTSReturn {
@@ -36,7 +37,10 @@ interface UseTTSReturn {
   isLoading: boolean
   error: string | null
 
-  // Audio element for amplitude analysis
+  // Real audio amplitude (0-1) from AnalyserNode
+  amplitude: number
+
+  // Audio element (for backwards compatibility)
   audioElement: HTMLAudioElement | null
 
   // Debug info (for NEXT_PUBLIC_DEBUG=true)
@@ -80,8 +84,13 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
   const [voiceEnabled, setVoiceEnabledState] = useState(false)
   const [audioContextState, setAudioContextState] = useState<AudioContextState | 'unavailable'>('unavailable')
 
-  // AudioContext for unlocking audio playback
+  // AudioContext for unlocking audio playback and analysis
   const audioContextRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null)
+  const dataArrayRef = useRef<Uint8Array | null>(null)
+  const amplitudeAnimationRef = useRef<number | null>(null)
+  const [realAmplitude, setRealAmplitude] = useState(0)
 
   // TTS state
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -100,6 +109,76 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
 
   // Abort controller for cancelling requests
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Compute RMS amplitude from analyser
+  const computeAmplitude = useCallback(() => {
+    if (!analyserRef.current || !dataArrayRef.current) return 0
+
+    analyserRef.current.getByteTimeDomainData(dataArrayRef.current)
+    const data = dataArrayRef.current
+
+    let sum = 0
+    for (let i = 0; i < data.length; i++) {
+      const normalized = (data[i] - 128) / 128
+      sum += normalized * normalized
+    }
+
+    const rms = Math.sqrt(sum / data.length)
+    return Math.min(1, rms * 3) // Scale and clamp to 0-1
+  }, [])
+
+  // Animation loop for amplitude while speaking
+  const updateAmplitudeLoop = useCallback(() => {
+    if (analyserRef.current && isSpeaking) {
+      const amp = computeAmplitude()
+      setRealAmplitude((prev) => prev + (amp - prev) * 0.3) // Smooth interpolation
+      amplitudeAnimationRef.current = requestAnimationFrame(updateAmplitudeLoop)
+    } else {
+      // Decay amplitude when not speaking
+      setRealAmplitude((prev) => {
+        const decayed = prev * 0.85
+        if (decayed > 0.01) {
+          amplitudeAnimationRef.current = requestAnimationFrame(updateAmplitudeLoop)
+        }
+        return decayed
+      })
+    }
+  }, [isSpeaking, computeAmplitude])
+
+  // Start/stop amplitude animation based on speaking state
+  useEffect(() => {
+    if (isSpeaking && analyserRef.current) {
+      amplitudeAnimationRef.current = requestAnimationFrame(updateAmplitudeLoop)
+    }
+    return () => {
+      if (amplitudeAnimationRef.current) {
+        cancelAnimationFrame(amplitudeAnimationRef.current)
+      }
+    }
+  }, [isSpeaking, updateAmplitudeLoop])
+
+  // Connect audio element to analyser when both are available
+  useEffect(() => {
+    if (audioContextRef.current && audioRef.current && !sourceNodeRef.current) {
+      try {
+        const analyser = audioContextRef.current.createAnalyser()
+        analyser.fftSize = 1024  // Good balance of frequency/time resolution
+        analyser.smoothingTimeConstant = 0.8
+
+        const source = audioContextRef.current.createMediaElementSource(audioRef.current)
+        source.connect(analyser)
+        analyser.connect(audioContextRef.current.destination)
+
+        analyserRef.current = analyser
+        sourceNodeRef.current = source
+        dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount)
+
+        console.log('[useTTS] Audio analyser connected, fftSize:', analyser.fftSize)
+      } catch (err) {
+        console.warn('[useTTS] Failed to setup audio analyser:', err)
+      }
+    }
+  }, [voiceEnabled]) // Re-run when voice is enabled (AudioContext created)
 
   // Load voice preference from localStorage on mount
   useEffect(() => {
@@ -304,6 +383,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     lastBytes,
     lastPlayError,
     lastAudioEnded,
+    amplitude: realAmplitude,
   }
 
   return {
@@ -314,6 +394,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     isSpeaking,
     isLoading,
     error,
+    amplitude: realAmplitude,
     audioElement,
     debugInfo,
     speak,

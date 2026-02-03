@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useChat, type ConnectionStatus } from '@/hooks/useChat'
-import { useAvatarDriver, useSimulatedSpeech } from '@/hooks/useAvatarDriver'
+import { useAvatarDriver } from '@/hooks/useAvatarDriver'
+import { useTTS } from '@/hooks/useTTS'
 import { HologramAvatar, getAvatarMode } from '@/components/HologramAvatar'
 import { DebugPanel } from '@/components/DebugPanel'
 
@@ -50,16 +51,21 @@ function HologramSection({
   connectionStatus,
   isTyping,
   isSpeaking,
+  ttsAmplitude,
 }: {
   connectionStatus: ConnectionStatus
   isTyping: boolean
   isSpeaking: boolean
+  ttsAmplitude: number
 }) {
   const avatarDriver = useAvatarDriver({
     connectionStatus,
     isTyping,
     isSpeaking,
   })
+
+  // Use TTS amplitude when speaking, otherwise use avatar driver's amplitude
+  const displayAmplitude = isSpeaking ? ttsAmplitude : avatarDriver.amplitude
 
   return (
     <div className="matrix-border-cyan rounded-lg overflow-hidden">
@@ -77,10 +83,63 @@ function HologramSection({
       <div className="h-[300px]">
         <HologramAvatar
           state={avatarDriver.state}
-          amplitude={avatarDriver.amplitude}
+          amplitude={displayAmplitude}
         />
       </div>
     </div>
+  )
+}
+
+// Voice toggle button component
+function VoiceToggle({
+  enabled,
+  onToggle,
+  isLoading,
+}: {
+  enabled: boolean
+  onToggle: () => void
+  isLoading: boolean
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      disabled={isLoading}
+      className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs transition-colors ${
+        enabled
+          ? 'bg-matrix-cyan/20 text-matrix-cyan border border-matrix-cyan/50'
+          : 'bg-gray-800/50 text-gray-400 border border-gray-600/50 hover:border-gray-500'
+      } ${isLoading ? 'opacity-50 cursor-wait' : ''}`}
+      title={enabled ? 'Voice enabled - click to disable' : 'Click to enable voice'}
+    >
+      {/* Speaker icon */}
+      <svg
+        className="w-3.5 h-3.5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        {enabled ? (
+          <>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M11 5L6 9H2v6h4l5 4V5z"
+            />
+          </>
+        ) : (
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+          />
+        )}
+      </svg>
+      <span className="uppercase tracking-wide">
+        {isLoading ? 'Loading...' : enabled ? 'Voice On' : 'Voice Off'}
+      </span>
+    </button>
   )
 }
 
@@ -94,6 +153,10 @@ function ChatSection({
   onSendMessage,
   onRetryMessage,
   onReconnect,
+  voiceEnabled,
+  voiceLoading,
+  onVoiceToggle,
+  ttsError,
 }: {
   messages: Array<{
     id: string
@@ -108,6 +171,10 @@ function ChatSection({
   onSendMessage: (content: string) => void
   onRetryMessage: (id: string) => void
   onReconnect: () => void
+  voiceEnabled: boolean
+  voiceLoading: boolean
+  onVoiceToggle: () => void
+  ttsError: string | null
 }) {
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -247,16 +314,30 @@ function ChatSection({
             </button>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <ConnectionIndicator
-              status={connectionStatus}
-              error={error}
-              onReconnect={onReconnect}
-            />
-            {conversationId && (
-              <span className="text-xs opacity-30 font-mono">
-                {conversationId.slice(0, 8)}...
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              <ConnectionIndicator
+                status={connectionStatus}
+                error={error}
+                onReconnect={onReconnect}
+              />
+              <VoiceToggle
+                enabled={voiceEnabled}
+                onToggle={onVoiceToggle}
+                isLoading={voiceLoading}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              {ttsError && (
+                <span className="text-xs text-red-400" title={ttsError}>
+                  TTS Error
+                </span>
+              )}
+              {conversationId && (
+                <span className="text-xs opacity-30 font-mono">
+                  {conversationId.slice(0, 8)}...
+                </span>
+              )}
+            </div>
           </div>
         </form>
       </div>
@@ -283,14 +364,24 @@ export function ChatInterface() {
     onConversationCreated: (id) => console.log('Conversation created:', id),
   })
 
-  // Simulated speech for demo (until TTS is implemented)
-  const { isSpeaking, startSpeaking } = useSimulatedSpeech()
+  // TTS hook for real voice synthesis
+  const {
+    voiceEnabled,
+    toggleVoice,
+    isSpeaking,
+    isLoading: ttsLoading,
+    error: ttsError,
+    amplitude: ttsAmplitude,
+    speak,
+  } = useTTS({
+    onError: (err) => console.error('TTS error:', err),
+  })
 
-  // Track when assistant message completes to trigger simulated speech
+  // Track when assistant message completes to trigger TTS
   const lastMessageRef = useRef<string | null>(null)
 
   useEffect(() => {
-    // When a new assistant message finishes streaming, simulate speech
+    // When a new assistant message finishes streaming, speak it
     const lastMessage = messages[messages.length - 1]
     if (
       lastMessage &&
@@ -299,11 +390,10 @@ export function ChatInterface() {
       lastMessage.id !== lastMessageRef.current
     ) {
       lastMessageRef.current = lastMessage.id
-      // Simulate speaking duration based on message length
-      const duration = Math.min(5000, Math.max(1500, lastMessage.content.length * 30))
-      startSpeaking(duration)
+      // Speak the message (respects voiceEnabled internally)
+      speak(lastMessage.content)
     }
-  }, [messages, startSpeaking])
+  }, [messages, speak])
 
   const handleReconnect = useCallback(() => {
     connect()
@@ -316,6 +406,7 @@ export function ChatInterface() {
         connectionStatus={connectionStatus}
         isTyping={isTyping}
         isSpeaking={isSpeaking}
+        ttsAmplitude={ttsAmplitude}
       />
 
       {/* Chat Interface */}
@@ -328,6 +419,10 @@ export function ChatInterface() {
         onSendMessage={sendMessage}
         onRetryMessage={retryMessage}
         onReconnect={handleReconnect}
+        voiceEnabled={voiceEnabled}
+        voiceLoading={ttsLoading}
+        onVoiceToggle={toggleVoice}
+        ttsError={ttsError}
       />
     </div>
   )

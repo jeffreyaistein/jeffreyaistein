@@ -18,6 +18,10 @@ from services.social.scheduler.timeline_poster import (
     is_approval_required,
     is_safe_mode,
 )
+from services.social.scheduler.learning_worker import (
+    LearningWorker,
+    get_learning_interval,
+)
 
 __all__ = [
     # Clock
@@ -35,4 +39,7 @@ __all__ = [
     "get_daily_limit",
     "is_safe_mode",
     "is_approval_required",
+    # Learning worker
+    "LearningWorker",
+    "get_learning_interval",
 ]

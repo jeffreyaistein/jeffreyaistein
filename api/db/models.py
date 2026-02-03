@@ -120,11 +120,14 @@ class Memory(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
-    type = Column(String(30), nullable=False, index=True)  # fact, preference, goal, constraint, open_loop, persona_fact
+    # Types: fact, preference, goal, constraint, open_loop, persona_fact
+    # Learning types: x_slang, x_narrative, x_engagement, x_risk_flag
+    type = Column(String(30), nullable=False, index=True)
     content = Column(Text, nullable=False)
     embedding = Column(Vector(1536), nullable=True)  # OpenAI ada-002 dimension
     confidence = Column(Float, default=1.0)
     source_event_ids = Column(ARRAY(UUID(as_uuid=True)), default=list)
+    source_tweet_ids = Column(ARRAY(String(30)), nullable=True)  # X tweet IDs for learning memories
     metadata_ = Column("metadata", JSONB, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

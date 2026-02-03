@@ -29,7 +29,7 @@ from auth.session import (
 from services.chat import ChatService, ChatContext
 from services.llm import get_llm_provider
 from services.social.providers import get_x_provider
-from services.social.scheduler import IngestionLoop, TimelinePosterLoop
+from services.social.scheduler import IngestionLoop, TimelinePosterLoop, LearningWorker
 from services.social.storage import (
     DraftStatus,
     get_draft_repository,
@@ -42,6 +42,8 @@ from services.social.storage import (
     SETTING_APPROVAL_REQUIRED,
 )
 from services.social.types import PostType
+from services.persona.style_rewriter import get_style_rewriter
+from services.persona.kol_profiles import get_kol_loader
 
 logger = structlog.get_logger()
 
@@ -54,6 +56,7 @@ def is_x_bot_enabled() -> bool:
 # Global references to scheduler loops for admin control
 _ingestion_loop: Optional[IngestionLoop] = None
 _timeline_loop: Optional[TimelinePosterLoop] = None
+_learning_worker: Optional[LearningWorker] = None
 _scheduler_tasks: list[asyncio.Task] = []
 
 
@@ -67,10 +70,15 @@ def get_timeline_loop() -> Optional[TimelinePosterLoop]:
     return _timeline_loop
 
 
+def get_learning_worker() -> Optional[LearningWorker]:
+    """Get the learning worker instance (if running)."""
+    return _learning_worker
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
-    global _ingestion_loop, _timeline_loop, _scheduler_tasks
+    global _ingestion_loop, _timeline_loop, _learning_worker, _scheduler_tasks
 
     print("AIstein API starting up...")
     logger.info("api_startup")
@@ -92,6 +100,7 @@ async def lifespan(app: FastAPI):
                 # Create scheduler loop instances
                 _ingestion_loop = IngestionLoop(x_provider=x_provider)
                 _timeline_loop = TimelinePosterLoop(x_provider=x_provider)
+                _learning_worker = LearningWorker()
 
                 # Start as background tasks
                 ingestion_task = asyncio.create_task(
@@ -102,12 +111,17 @@ async def lifespan(app: FastAPI):
                     _timeline_loop.start(),
                     name="x_timeline_loop",
                 )
-                _scheduler_tasks = [ingestion_task, timeline_task]
+                learning_task = asyncio.create_task(
+                    _learning_worker.start(),
+                    name="x_learning_worker",
+                )
+                _scheduler_tasks = [ingestion_task, timeline_task, learning_task]
 
                 logger.info(
                     "x_bot_schedulers_started",
                     ingestion_interval=_ingestion_loop.poll_interval,
                     timeline_interval=_timeline_loop.interval,
+                    learning_interval=_learning_worker.interval,
                 )
 
         except Exception as e:
@@ -130,6 +144,10 @@ async def lifespan(app: FastAPI):
         logger.info("stopping_timeline_loop")
         await _timeline_loop.stop()
 
+    if _learning_worker:
+        logger.info("stopping_learning_worker")
+        await _learning_worker.stop()
+
     # Wait for tasks to complete (with timeout)
     if _scheduler_tasks:
         logger.info("waiting_for_scheduler_tasks", count=len(_scheduler_tasks))
@@ -145,6 +163,7 @@ async def lifespan(app: FastAPI):
     # Reset globals
     _ingestion_loop = None
     _timeline_loop = None
+    _learning_worker = None
     _scheduler_tasks = []
 
     await engine.dispose()
@@ -268,14 +287,20 @@ async def ready(db: AsyncSession = Depends(get_db)):
     # Check X bot status
     x_bot_ok = True
     x_bot_running = False
+    learning_worker_running = False
     if is_x_bot_enabled():
         ingestion_loop = get_ingestion_loop()
         timeline_loop = get_timeline_loop()
+        learning_worker = get_learning_worker()
         x_bot_running = (
             ingestion_loop is not None
             and timeline_loop is not None
             and ingestion_loop.get_stats().get("running", False)
             and timeline_loop.get_stats().get("running", False)
+        )
+        learning_worker_running = (
+            learning_worker is not None
+            and learning_worker.get_stats().get("running", False)
         )
         x_bot_ok = x_bot_running
 
@@ -289,6 +314,7 @@ async def ready(db: AsyncSession = Depends(get_db)):
         },
         "x_bot_enabled": is_x_bot_enabled(),
         "x_bot_running": x_bot_running,
+        "learning_worker_running": learning_worker_running,
     }
 
 
@@ -1080,6 +1106,7 @@ async def admin_get_social_status(request: Request):
 
     ingestion_loop = get_ingestion_loop()
     timeline_loop = get_timeline_loop()
+    learning_worker = get_learning_worker()
 
     # Get runtime settings (DB overrides env)
     safe_mode = await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false")
@@ -1089,6 +1116,7 @@ async def admin_get_social_status(request: Request):
         "enabled": is_x_bot_enabled(),
         "ingestion": ingestion_loop.get_stats() if ingestion_loop else None,
         "timeline": timeline_loop.get_stats() if timeline_loop else None,
+        "learning": learning_worker.get_stats() if learning_worker else None,
         "safe_mode": safe_mode,
         "approval_required": approval_required,
     }
@@ -1336,6 +1364,236 @@ async def admin_update_social_settings(request: Request, body: UpdateSettingsReq
             "approval_required": approval_db == "true" if approval_db else os.getenv("APPROVAL_REQUIRED", "true").lower() in ("true", "1", "yes"),
         },
         "note": "Settings stored in database take precedence over environment variables",
+    }
+
+
+@app.get("/api/admin/persona/status")
+async def admin_get_persona_status(request: Request):
+    """
+    Get persona system status (admin only).
+
+    Returns status of style guide, KOL profiles, and brand rules enforcement.
+    """
+    await verify_admin_key(request)
+
+    # Get style rewriter status
+    style_rewriter = get_style_rewriter()
+    style_guide_loaded = style_rewriter.is_available()
+    style_guide_generated_at = style_rewriter.get_generated_at() if style_guide_loaded else None
+
+    # Get KOL profiles status
+    kol_loader = get_kol_loader()
+    kol_profiles_loaded_count = kol_loader.profile_count
+    kol_profiles_generated_at = kol_loader.get_generated_at() if kol_loader.is_available() else None
+
+    return {
+        "style_guide_loaded": style_guide_loaded,
+        "style_guide_generated_at": style_guide_generated_at,
+        "kol_profiles_loaded_count": kol_profiles_loaded_count,
+        "kol_profiles_generated_at": kol_profiles_generated_at,
+        "brand_rules_enforced": True,
+        "no_emojis": True,
+        "no_hashtags": True,
+    }
+
+
+@app.get("/api/admin/learning/status")
+async def admin_get_learning_status(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Get learning system persistence status (admin only).
+
+    Returns counts of stored inbound/outbound tweets, drafts, and thread linkage status.
+    """
+    await verify_admin_key(request)
+
+    from sqlalchemy import text
+
+    # Query inbound tweets count
+    inbound_result = await db.execute(text("SELECT COUNT(*) FROM x_inbox"))
+    inbound_tweets_count = inbound_result.scalar() or 0
+
+    # Query outbound posts count (only posted)
+    outbound_result = await db.execute(
+        text("SELECT COUNT(*) FROM x_posts WHERE status = 'posted'")
+    )
+    outbound_posts_count = outbound_result.scalar() or 0
+
+    # Query drafts by status
+    drafts_result = await db.execute(
+        text("SELECT status, COUNT(*) as count FROM x_drafts GROUP BY status")
+    )
+    drafts_rows = drafts_result.fetchall()
+    drafts_count = {
+        "pending": 0,
+        "approved": 0,
+        "rejected": 0,
+    }
+    for row in drafts_rows:
+        if row[0] in drafts_count:
+            drafts_count[row[0]] = row[1]
+
+    # Query last ingest timestamp
+    last_ingest_result = await db.execute(
+        text("SELECT MAX(received_at) FROM x_inbox")
+    )
+    last_ingest_at = last_ingest_result.scalar()
+
+    # Query last post timestamp
+    last_post_result = await db.execute(
+        text("SELECT MAX(posted_at) FROM x_posts WHERE status = 'posted'")
+    )
+    last_post_at = last_post_result.scalar()
+
+    # Check thread linkage - verify columns exist and have data
+    # x_inbox stores thread info in tweet_data JSONB (conversation_id, reply_to_tweet_id)
+    # x_posts has reply_to_id column for thread linkage
+    thread_linkage_ok = True
+    thread_linkage_details = {}
+
+    try:
+        # Check x_inbox has tweet_data with thread info
+        inbox_thread_result = await db.execute(
+            text("""
+                SELECT COUNT(*) FROM x_inbox
+                WHERE tweet_data->>'conversation_id' IS NOT NULL
+                   OR tweet_data->>'reply_to_tweet_id' IS NOT NULL
+            """)
+        )
+        inbox_thread_count = inbox_thread_result.scalar() or 0
+        thread_linkage_details["inbound_with_thread_info"] = inbox_thread_count
+
+        # Check x_posts has reply_to_id populated
+        posts_reply_result = await db.execute(
+            text("SELECT COUNT(*) FROM x_posts WHERE reply_to_id IS NOT NULL")
+        )
+        posts_reply_count = posts_reply_result.scalar() or 0
+        thread_linkage_details["outbound_with_reply_to"] = posts_reply_count
+
+        # Check x_threads table has data
+        threads_result = await db.execute(text("SELECT COUNT(*) FROM x_threads"))
+        threads_count = threads_result.scalar() or 0
+        thread_linkage_details["threads_tracked"] = threads_count
+
+    except Exception as e:
+        thread_linkage_ok = False
+        thread_linkage_details["error"] = str(e)
+
+    # Query learning extraction stats
+    learning_stats = {}
+    try:
+        # Extracted memories count
+        memories_result = await db.execute(
+            text("SELECT COUNT(*) FROM memories WHERE type LIKE 'x_%'")
+        )
+        learning_stats["extracted_memories_count"] = memories_result.scalar() or 0
+
+        # Processed inbox count
+        processed_inbox_result = await db.execute(
+            text("SELECT COUNT(*) FROM x_inbox WHERE learning_processed = true")
+        )
+        learning_stats["processed_inbox_count"] = processed_inbox_result.scalar() or 0
+
+        # Processed posts count
+        processed_posts_result = await db.execute(
+            text("SELECT COUNT(*) FROM x_posts WHERE learning_processed = true")
+        )
+        learning_stats["processed_posts_count"] = processed_posts_result.scalar() or 0
+
+        # Last learning job timestamp
+        last_learning_result = await db.execute(
+            text("""
+                SELECT GREATEST(
+                    (SELECT MAX(learning_processed_at) FROM x_inbox),
+                    (SELECT MAX(learning_processed_at) FROM x_posts)
+                )
+            """)
+        )
+        last_learning_at = last_learning_result.scalar()
+        learning_stats["last_learning_job_at"] = last_learning_at.isoformat() if last_learning_at else None
+
+    except Exception as e:
+        learning_stats["error"] = str(e)
+        learning_stats["extracted_memories_count"] = 0
+        learning_stats["processed_inbox_count"] = 0
+        learning_stats["processed_posts_count"] = 0
+        learning_stats["last_learning_job_at"] = None
+
+    return {
+        "inbound_tweets_count": inbound_tweets_count,
+        "outbound_posts_count": outbound_posts_count,
+        "drafts_count": drafts_count,
+        "last_ingest_at": last_ingest_at.isoformat() if last_ingest_at else None,
+        "last_post_at": last_post_at.isoformat() if last_post_at else None,
+        "last_learning_job_at": learning_stats.get("last_learning_job_at"),
+        "thread_linkage_ok": thread_linkage_ok,
+        "thread_linkage_details": thread_linkage_details,
+        "learning": learning_stats,
+        "tables_used": [
+            "x_inbox",
+            "x_posts",
+            "x_drafts",
+            "x_threads",
+            "x_reply_log",
+            "memories",
+        ],
+    }
+
+
+@app.get("/api/admin/learning/recent")
+async def admin_get_learning_recent(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    kind: Optional[str] = Query(default=None, description="Filter by kind: x_slang, x_narrative, x_risk_flag, x_engagement"),
+    limit: int = Query(default=50, ge=1, le=200),
+):
+    """
+    Get recent extracted learning memories (admin only).
+
+    Returns the most recent memories extracted from X interactions.
+    """
+    await verify_admin_key(request)
+
+    from sqlalchemy import text
+
+    # Build query
+    if kind and kind in ("x_slang", "x_narrative", "x_risk_flag", "x_engagement"):
+        query = text("""
+            SELECT id, type, content, confidence, source_tweet_ids, metadata, created_at
+            FROM memories
+            WHERE type = :kind
+            ORDER BY created_at DESC
+            LIMIT :limit
+        """)
+        params = {"kind": kind, "limit": limit}
+    else:
+        query = text("""
+            SELECT id, type, content, confidence, source_tweet_ids, metadata, created_at
+            FROM memories
+            WHERE type LIKE 'x_%'
+            ORDER BY created_at DESC
+            LIMIT :limit
+        """)
+        params = {"limit": limit}
+
+    result = await db.execute(query, params)
+    rows = result.mappings().fetchall()
+
+    memories = []
+    for row in rows:
+        memories.append({
+            "id": str(row["id"]),
+            "kind": row["type"],
+            "content": row["content"],
+            "confidence": row["confidence"],
+            "source_tweet_ids": row["source_tweet_ids"] or [],
+            "metadata": row["metadata"] or {},
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        })
+
+    return {
+        "memories": memories,
+        "total": len(memories),
+        "filter": kind,
     }
 
 

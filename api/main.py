@@ -2076,6 +2076,68 @@ async def admin_get_style_status(
     }
 
 
+@app.post("/api/admin/persona/style/generate")
+async def admin_generate_style_proposal(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Manually trigger style guide proposal generation (admin only).
+
+    This endpoint triggers the proposal generation process WITHOUT activation.
+    The generated proposal will have is_active=false and require explicit
+    activation via the /activate endpoint.
+
+    IMPORTANT: This does NOT auto-activate - admin approval required.
+    """
+    await verify_admin_key(request)
+
+    self_style_worker = get_self_style_worker()
+    if not self_style_worker:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "SelfStyleWorker not initialized"},
+        )
+
+    # Check if Redis is available (required for locking)
+    redis_available = await self_style_worker._lock.is_available()
+    if not redis_available:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Redis unavailable - leader lock required"},
+        )
+
+    # Trigger proposal generation via _run_with_lock
+    # This handles locking, generation, and DB insertion
+    result = await self_style_worker._run_with_lock()
+
+    # Check for errors
+    if result.get("error"):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": result.get("error"),
+                "skip_reason": result.get("skip_reason"),
+            },
+        )
+
+    if result.get("skipped"):
+        return {
+            "generated": False,
+            "skipped": True,
+            "skip_reason": result.get("skip_reason"),
+            "lock_acquired": result.get("lock_acquired", False),
+        }
+
+    return {
+        "generated": result.get("proposal_generated", False),
+        "version_id": result.get("version_id"),
+        "tweet_count": result.get("tweet_count"),
+        "is_active": False,  # NEVER auto-activated
+        "message": "Proposal generated - requires admin activation via /activate endpoint",
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

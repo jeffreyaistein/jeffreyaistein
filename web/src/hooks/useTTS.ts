@@ -110,6 +110,9 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
   // Abort controller for cancelling requests
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // Lock to prevent concurrent speak operations
+  const speakLockRef = useRef<boolean>(false)
+
   // Compute RMS amplitude from analyser
   const computeAmplitude = useCallback(() => {
     if (!analyserRef.current || !dataArrayRef.current) return 0
@@ -296,8 +299,19 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       return
     }
 
-    // Stop any current audio
+    // Wait for any in-progress speak operation to complete
+    if (speakLockRef.current) {
+      console.log('[useTTS] Speak already in progress, stopping previous...')
+    }
+
+    // Stop any current audio and wait for it to settle
     stop()
+
+    // Acquire lock
+    speakLockRef.current = true
+
+    // Wait for audio element to fully reset after stop()
+    await new Promise(resolve => setTimeout(resolve, 100))
 
     // Clear previous error and debug state
     setError(null)
@@ -398,6 +412,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       onError?.(errorMessage)
     } finally {
       setIsLoading(false)
+      speakLockRef.current = false
     }
   }, [voiceEnabled, apiBaseUrl, stop, onError])
 

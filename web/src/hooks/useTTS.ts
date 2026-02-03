@@ -344,14 +344,40 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       // Play audio with specific error handling
       if (audioRef.current) {
         audioRef.current.src = audioUrl
+
+        // Small delay to let the audio element settle after src change
+        await new Promise(resolve => setTimeout(resolve, 50))
+
         try {
           await audioRef.current.play()
           console.log('[useTTS] Audio play() succeeded')
           setLastPlayError(null)
         } catch (playErr) {
-          // Capture specific play() errors for debugging
           const playError = playErr as Error
           const errorName = playError.name || 'UnknownError'
+
+          // AbortError from play() interrupted by pause() is benign - retry once
+          if (errorName === 'AbortError') {
+            console.log('[useTTS] play() was interrupted, retrying...')
+            await new Promise(resolve => setTimeout(resolve, 100))
+            try {
+              await audioRef.current.play()
+              console.log('[useTTS] Audio play() retry succeeded')
+              setLastPlayError(null)
+              return
+            } catch (retryErr) {
+              // Still failed after retry
+              const retryError = retryErr as Error
+              const errorMsg = `Play failed after retry: ${retryError.name} - ${retryError.message}`
+              console.error('[useTTS] play() retry error:', errorMsg)
+              setLastPlayError(errorMsg)
+              setError(errorMsg)
+              onError?.(errorMsg)
+              return
+            }
+          }
+
+          // Other play() errors
           const errorMsg = `Play failed: ${errorName} - ${playError.message}`
           console.error('[useTTS] play() error:', errorName, playError.message)
           setLastPlayError(errorMsg)

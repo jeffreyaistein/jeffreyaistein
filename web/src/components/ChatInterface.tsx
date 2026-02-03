@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useChat, type ConnectionStatus } from '@/hooks/useChat'
 import { useAvatarDriver, useSimulatedSpeech } from '@/hooks/useAvatarDriver'
-import { HologramAvatar3D } from '@/components/HologramAvatar3D'
+import { HologramAvatar, getAvatarMode } from '@/components/HologramAvatar'
 import { DebugPanel } from '@/components/DebugPanel'
 
 // Connection status indicator component
@@ -71,11 +71,11 @@ function HologramSection({
           </span>
         </div>
         <span className="text-[10px] text-matrix-cyan/50 uppercase">
-          {avatarDriver.state}
+          {getAvatarMode().toUpperCase()} | {avatarDriver.state}
         </span>
       </div>
       <div className="h-[300px]">
-        <HologramAvatar3D
+        <HologramAvatar
           state={avatarDriver.state}
           amplitude={avatarDriver.amplitude}
         />

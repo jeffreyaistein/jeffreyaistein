@@ -996,6 +996,170 @@ NEXT_PUBLIC_AVATAR_DEBUG=true (temporary)
 
 ---
 
+## Card Avatar Mode Implementation ✅
+
+**Status: COMPLETE**
+
+**Date:** 2026-02-03
+
+**Goal:** Add alternate 2.5D hologram card avatar mode alongside existing GLB avatar.
+
+### Assets
+
+| Asset | Size | Path |
+|-------|------|------|
+| Face texture | 903KB | `public/assets/models/aistein/aistein_face.png` |
+| Mouth mask | 9.6KB | `public/assets/models/aistein/aistein_face_mouth_mask.png` |
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/components/HologramCardAvatar.tsx` | 2.5D card avatar with hologram shader |
+| `src/components/HologramAvatar.tsx` | Mode switcher component |
+| `docs/AVATAR_MODE.md` | Documentation for avatar modes |
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/components/ChatInterface.tsx` | Import HologramAvatar instead of HologramAvatar3D |
+
+### Environment Variable
+
+```
+NEXT_PUBLIC_AVATAR_MODE=glb|card
+```
+
+- Default: `glb` (existing 3D avatar)
+- `card`: New 2.5D card avatar
+
+### Card Avatar Features
+
+1. **Hologram Shader Effects:**
+   - Scanlines
+   - Noise overlay
+   - Flicker effect
+   - Chromatic aberration
+   - State-based color modulation (cyan for listening/thinking)
+
+2. **Mouth Mask Speaking Animation:**
+   - Glow effect driven by amplitude
+   - Only active during `speaking` state
+
+3. **Debug Overlay:**
+   - Mask alignment controls (arrow keys, +/-)
+   - Shift for fine adjustment
+   - Values logged to console for baking
+
+4. **State Support:**
+   - idle, listening, thinking, speaking
+   - Same states as GLB avatar
+
+### Build Verification
+
+```
+npm run type-check  # Pass
+npm run build       # Pass (328kB first load)
+```
+
+### Debug Mode
+
+```
+NEXT_PUBLIC_AVATAR_DEBUG=true
+```
+
+Shows mode, state, amplitude, and keyboard controls for mask alignment.
+
+---
+
+## Projected Face Avatar Mode Implementation ✅
+
+**Status: COMPLETE**
+
+**Date:** 2026-02-03
+
+**Goal:** Add projected_face mode that projects the face PNG onto the GLB mesh without hologram green tint.
+
+### Concept
+
+Instead of a hologram shader, the face texture is projected from the camera viewpoint onto the 3D mesh surface, creating a "funky warped" effect where the face maps onto the head geometry.
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/components/HologramProjectedFace.tsx` | Projected face avatar component |
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `src/components/HologramAvatar.tsx` | Added projected_face mode case |
+| `docs/AVATAR_MODE.md` | Updated with projected_face documentation |
+
+### Environment Variable
+
+```
+NEXT_PUBLIC_AVATAR_MODE=projected_face
+```
+
+### Shader Features
+
+1. **Front Projection:**
+   - Uses clip space coordinates to project face texture
+   - Projection follows camera viewpoint (like a projector)
+
+2. **Normal-Based Fading:**
+   - `frontFadeStrength` controls how quickly projection fades on sides
+   - Back-facing fragments are discarded
+   - Side-facing fragments fade out smoothly
+
+3. **Natural Colors:**
+   - No green hologram tint
+   - Face texture colors preserved
+   - Optional scanlines/noise (default OFF)
+
+4. **Speaking Animation:**
+   - Mouth mask projected same way as face
+   - Brightness boost in mouth region during speaking
+   - Subtle distortion driven by amplitude
+
+### Debug Controls (when NEXT_PUBLIC_AVATAR_DEBUG=true)
+
+| Key | Action |
+|-----|--------|
+| 1-7 | Select parameter |
+| Arrows | Adjust value |
+| Shift | Fine adjustment (0.01) |
+| R | Reset to defaults |
+
+**Tunable Parameters:**
+- projectionScale (0.85)
+- projectionOffsetX (0.0)
+- projectionOffsetY (0.15)
+- frontFadeStrength (2.5)
+- mouthIntensity (1.5)
+- scanlineIntensity (0.0)
+- noiseIntensity (0.0)
+
+### Build Verification
+
+```
+npm run type-check  # Pass
+npm run build       # Pass (330kB first load)
+```
+
+### All Avatar Modes
+
+| Mode | Env Value | Description |
+|------|-----------|-------------|
+| GLB Hologram | `glb` (default) | Green hologram shader on 3D mesh |
+| Card | `card` | 2.5D plane with hologram effects |
+| Projected Face | `projected_face` | Face PNG projected onto 3D mesh |
+
+---
+
 ## Next Step
 
 **Task 2: Deploy to Vercel (git push + env vars)**

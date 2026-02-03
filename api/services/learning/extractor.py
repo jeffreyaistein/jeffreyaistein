@@ -625,7 +625,7 @@ class LearningExtractor:
                             source_tweet_ids, metadata, created_at
                         ) VALUES (
                             :id, :type, :content, :confidence,
-                            :source_tweet_ids, :metadata::jsonb, :created_at
+                            :source_tweet_ids, CAST(:metadata AS jsonb), :created_at
                         )
                     """),
                     {

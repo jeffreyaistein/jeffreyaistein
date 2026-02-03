@@ -10,6 +10,7 @@ Extracts learning memories from X interactions:
 IMPORTANT: Never store emojis or hashtags in memory content.
 """
 
+import json
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -614,6 +615,9 @@ class LearningExtractor:
                 # Ensure content is clean (no emojis/hashtags)
                 clean_content = clean_text(memory.content)
 
+                # Serialize metadata to JSON string for JSONB column
+                metadata_json = json.dumps(memory.metadata) if memory.metadata else None
+
                 await session.execute(
                     text("""
                         INSERT INTO memories (
@@ -621,7 +625,7 @@ class LearningExtractor:
                             source_tweet_ids, metadata, created_at
                         ) VALUES (
                             :id, :type, :content, :confidence,
-                            :source_tweet_ids, :metadata, :created_at
+                            :source_tweet_ids, :metadata::jsonb, :created_at
                         )
                     """),
                     {
@@ -630,7 +634,7 @@ class LearningExtractor:
                         "content": clean_content,
                         "confidence": memory.confidence,
                         "source_tweet_ids": memory.source_tweet_ids,
-                        "metadata": memory.metadata,
+                        "metadata": metadata_json,
                         "created_at": datetime.now(timezone.utc),
                     }
                 )

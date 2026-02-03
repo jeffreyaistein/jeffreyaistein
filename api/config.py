@@ -81,6 +81,15 @@ class Settings(BaseSettings):
     enable_image_gen: bool = True
     enable_token_data: bool = True
 
+    # Self-Style Pipeline
+    # IMPORTANT: Proposals are NEVER auto-activated. Admin approval required.
+    self_style_enabled: bool = False  # Enable automatic style proposal generation
+    self_style_interval_hours: int = 24  # Hours between proposal generation runs
+    self_style_min_tweets: int = 25  # Minimum tweets required to generate proposal
+    self_style_max_tweets: int = 500  # Maximum tweets to analyze per proposal
+    self_style_days: int = 30  # Days to look back for tweets
+    self_style_include_replies: bool = True  # Include reply tweets in analysis
+
     # Celery
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"

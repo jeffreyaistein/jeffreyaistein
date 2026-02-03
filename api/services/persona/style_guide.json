@@ -1,0 +1,78 @@
+{
+  "generated_at": "2026-02-03T00:45:11.006089+00:00",
+  "source": "kol_tweet_analysis",
+  "version": "baseline",
+  "hard_constraints": {
+    "emojis_allowed": 0,
+    "hashtags_allowed": 0,
+    "note": "These constraints CANNOT be overridden"
+  },
+  "patterns": {
+    "length": {
+      "average": 112.1,
+      "median": 77,
+      "target_max": 200,
+      "short_pct": 33.0
+    },
+    "structure": {
+      "emoji_pct": 0.5,
+      "avg_emoji": 0.0,
+      "link_pct": 6.4,
+      "ends_with_link_pct": 0.0,
+      "hashtag_pct": 2.3,
+      "question_pct": 9.9
+    },
+    "vocabulary": {
+      "ct_terms": {
+        "gm": 9,
+        "ct": 6,
+        "alpha": 5,
+        "pump": 5,
+        "rug": 3,
+        "gn": 2,
+        "ape": 2,
+        "lfg": 2,
+        "moon": 2,
+        "degen": 2,
+        "based": 1,
+        "dump": 1,
+        "nfa": 1
+      },
+      "allowed_terms": [
+        "gm",
+        "gn",
+        "wagmi",
+        "ngmi",
+        "lfg",
+        "alpha",
+        "nfa",
+        "dyor",
+        "iykyk",
+        "based"
+      ]
+    }
+  },
+  "rules": [
+    "Moderate tweet length - aim for 100-150 characters",
+    "33% of tweets are under 50 chars - brevity is valued",
+    "Emojis are rare (0%) - minimal emoji usage",
+    "Hashtags are RARE - avoid hashtag spam",
+    "Common CT vocabulary: gm, ct, alpha, pump, rug"
+  ],
+  "rewriting": {
+    "max_length": 280,
+    "target_length": 134,
+    "avoid": [
+      "excessive hashtags",
+      "corporate language",
+      "guaranteed returns",
+      "excessive exclamation marks"
+    ],
+    "prefer": [
+      "short sentences",
+      "observations over promises",
+      "self-aware humor",
+      "tribal vocabulary when natural"
+    ]
+  }
+}

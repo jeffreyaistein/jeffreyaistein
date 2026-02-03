@@ -29,7 +29,13 @@ from auth.session import (
 from services.chat import ChatService, ChatContext
 from services.llm import get_llm_provider
 from services.social.providers import get_x_provider
-from services.social.scheduler import IngestionLoop, TimelinePosterLoop, LearningWorker
+from services.social.scheduler import (
+    IngestionLoop,
+    TimelinePosterLoop,
+    LearningWorker,
+    SelfStyleWorker,
+    is_self_style_enabled,
+)
 from services.social.storage import (
     DraftStatus,
     get_draft_repository,
@@ -42,7 +48,11 @@ from services.social.storage import (
     SETTING_APPROVAL_REQUIRED,
 )
 from services.social.types import PostType
-from services.persona.style_rewriter import get_style_rewriter
+from services.persona.style_rewriter import (
+    get_style_rewriter,
+    reload_style_rewriter_async,
+    _validate_hard_constraints,
+)
 from services.persona.kol_profiles import get_kol_loader
 
 logger = structlog.get_logger()
@@ -57,6 +67,7 @@ def is_x_bot_enabled() -> bool:
 _ingestion_loop: Optional[IngestionLoop] = None
 _timeline_loop: Optional[TimelinePosterLoop] = None
 _learning_worker: Optional[LearningWorker] = None
+_self_style_worker: Optional[SelfStyleWorker] = None
 _scheduler_tasks: list[asyncio.Task] = []
 
 
@@ -75,13 +86,31 @@ def get_learning_worker() -> Optional[LearningWorker]:
     return _learning_worker
 
 
+def get_self_style_worker() -> Optional[SelfStyleWorker]:
+    """Get the self-style worker instance (if created)."""
+    return _self_style_worker
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
-    global _ingestion_loop, _timeline_loop, _learning_worker, _scheduler_tasks
+    global _ingestion_loop, _timeline_loop, _learning_worker, _self_style_worker, _scheduler_tasks
 
     print("AIstein API starting up...")
     logger.info("api_startup")
+
+    # Start SelfStyleWorker if enabled (independent of X bot)
+    # Worker handles its own gating (SELF_STYLE_ENABLED, Redis availability)
+    _self_style_worker = SelfStyleWorker()
+    if is_self_style_enabled():
+        logger.info("self_style_worker_creating", enabled=True)
+        self_style_task = asyncio.create_task(
+            _self_style_worker.start(),
+            name="self_style_worker",
+        )
+        _scheduler_tasks.append(self_style_task)
+    else:
+        logger.info("self_style_worker_disabled", reason="SELF_STYLE_ENABLED not set")
 
     # Start X bot scheduler loops if enabled
     if is_x_bot_enabled():
@@ -148,6 +177,10 @@ async def lifespan(app: FastAPI):
         logger.info("stopping_learning_worker")
         await _learning_worker.stop()
 
+    if _self_style_worker and _self_style_worker._running:
+        logger.info("stopping_self_style_worker")
+        await _self_style_worker.stop()
+
     # Wait for tasks to complete (with timeout)
     if _scheduler_tasks:
         logger.info("waiting_for_scheduler_tasks", count=len(_scheduler_tasks))
@@ -164,6 +197,7 @@ async def lifespan(app: FastAPI):
     _ingestion_loop = None
     _timeline_loop = None
     _learning_worker = None
+    _self_style_worker = None
     _scheduler_tasks = []
 
     await engine.dispose()
@@ -1107,6 +1141,7 @@ async def admin_get_social_status(request: Request):
     ingestion_loop = get_ingestion_loop()
     timeline_loop = get_timeline_loop()
     learning_worker = get_learning_worker()
+    self_style_worker = get_self_style_worker()
 
     # Get runtime settings (DB overrides env)
     safe_mode = await get_runtime_setting(SETTING_SAFE_MODE, "SAFE_MODE", "false")
@@ -1117,6 +1152,7 @@ async def admin_get_social_status(request: Request):
         "ingestion": ingestion_loop.get_stats() if ingestion_loop else None,
         "timeline": timeline_loop.get_stats() if timeline_loop else None,
         "learning": learning_worker.get_stats() if learning_worker else None,
+        "self_style": self_style_worker.get_stats() if self_style_worker else None,
         "safe_mode": safe_mode,
         "approval_required": approval_required,
     }
@@ -1518,6 +1554,19 @@ async def admin_get_learning_status(request: Request, db: AsyncSession = Depends
         learning_stats["processed_posts_count"] = 0
         learning_stats["last_learning_job_at"] = None
 
+    # Get SelfStyleWorker status
+    self_style_worker = get_self_style_worker()
+    self_style_status = None
+    if self_style_worker:
+        worker_stats = self_style_worker.get_stats()
+        self_style_status = {
+            "enabled": worker_stats.get("enabled", False),
+            "disabled_reason": worker_stats.get("disabled_reason"),
+            "last_run_status": worker_stats.get("last_run_status"),
+            "last_run_finished_at": worker_stats.get("last_run_finished_at"),
+            "last_proposal_version_id": worker_stats.get("last_proposal_version_id"),
+        }
+
     return {
         "inbound_tweets_count": inbound_tweets_count,
         "outbound_posts_count": outbound_posts_count,
@@ -1525,9 +1574,12 @@ async def admin_get_learning_status(request: Request, db: AsyncSession = Depends
         "last_ingest_at": last_ingest_at.isoformat() if last_ingest_at else None,
         "last_post_at": last_post_at.isoformat() if last_post_at else None,
         "last_learning_job_at": learning_stats.get("last_learning_job_at"),
+        "last_self_style_job_at": self_style_status.get("last_run_finished_at") if self_style_status else None,
+        "last_self_style_status": self_style_status.get("last_run_status") if self_style_status else None,
         "thread_linkage_ok": thread_linkage_ok,
         "thread_linkage_details": thread_linkage_details,
         "learning": learning_stats,
+        "self_style": self_style_status,
         "tables_used": [
             "x_inbox",
             "x_posts",
@@ -1535,6 +1587,7 @@ async def admin_get_learning_status(request: Request, db: AsyncSession = Depends
             "x_threads",
             "x_reply_log",
             "memories",
+            "style_guide_versions",
         ],
     }
 
@@ -1594,6 +1647,432 @@ async def admin_get_learning_recent(
         "memories": memories,
         "total": len(memories),
         "filter": kind,
+    }
+
+
+# =============================================================================
+# Style Guide Version Management Endpoints
+# =============================================================================
+
+
+@app.get("/api/admin/persona/style/versions")
+async def admin_list_style_versions(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    List all style guide versions (admin only).
+
+    Returns all proposals ordered by generated_at descending.
+    Does not include full JSON rules content.
+    """
+    await verify_admin_key(request)
+
+    from sqlalchemy import text
+
+    query = text("""
+        SELECT
+            version_id,
+            generated_at,
+            source,
+            tweet_count,
+            md_path,
+            json_path,
+            is_active,
+            activated_at,
+            deactivated_at,
+            created_at
+        FROM style_guide_versions
+        ORDER BY generated_at DESC
+    """)
+
+    result = await db.execute(query)
+    rows = result.mappings().fetchall()
+
+    versions = []
+    for row in rows:
+        versions.append({
+            "version_id": row["version_id"],
+            "generated_at": row["generated_at"].isoformat() if row["generated_at"] else None,
+            "source": row["source"],
+            "tweet_count": row["tweet_count"],
+            "md_path": row["md_path"],
+            "json_path": row["json_path"],
+            "is_active": row["is_active"],
+            "activated_at": row["activated_at"].isoformat() if row["activated_at"] else None,
+            "deactivated_at": row["deactivated_at"].isoformat() if row["deactivated_at"] else None,
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        })
+
+    return {
+        "versions": versions,
+        "total": len(versions),
+    }
+
+
+class ActivateStyleVersionRequest(BaseModel):
+    """Request body for activating a style guide version."""
+    version_id: str
+
+
+@app.post("/api/admin/persona/style/activate")
+async def admin_activate_style_version(
+    request: Request,
+    body: ActivateStyleVersionRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Activate a style guide version (admin only).
+
+    - Validates version exists
+    - Validates hard constraints (emojis_allowed=0, hashtags_allowed=0)
+    - Deactivates current active version
+    - Activates requested version
+    - Reloads StyleRewriter in-process
+    """
+    await verify_admin_key(request)
+
+    import json
+    from pathlib import Path
+    from sqlalchemy import text
+
+    version_id = body.version_id
+
+    # Check version exists
+    check_query = text("""
+        SELECT version_id, json_path, is_active
+        FROM style_guide_versions
+        WHERE version_id = :version_id
+    """)
+    result = await db.execute(check_query, {"version_id": version_id})
+    row = result.mappings().fetchone()
+
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Version {version_id} not found")
+
+    if row["is_active"]:
+        raise HTTPException(status_code=400, detail=f"Version {version_id} is already active")
+
+    # Load and validate the JSON file
+    json_path = row["json_path"]
+    json_file = Path(json_path)
+    if not json_file.is_absolute():
+        # Relative path - resolve from api root
+        json_file = Path(__file__).parent / json_path
+
+    if not json_file.exists():
+        raise HTTPException(
+            status_code=400,
+            detail=f"JSON file not found: {json_path}"
+        )
+
+    try:
+        with open(json_file, "r", encoding="utf-8") as f:
+            guide = json.load(f)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to load JSON: {str(e)}"
+        )
+
+    # Validate hard constraints
+    is_valid, error = _validate_hard_constraints(guide)
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Guide fails safety validation: {error}"
+        )
+
+    # Transaction: deactivate current, activate new
+    now = datetime.utcnow()
+
+    # Deactivate current active version (if any)
+    deactivate_query = text("""
+        UPDATE style_guide_versions
+        SET is_active = false, deactivated_at = :now
+        WHERE is_active = true
+    """)
+    await db.execute(deactivate_query, {"now": now})
+
+    # Activate requested version
+    activate_query = text("""
+        UPDATE style_guide_versions
+        SET is_active = true, activated_at = :now
+        WHERE version_id = :version_id
+    """)
+    await db.execute(activate_query, {"version_id": version_id, "now": now})
+
+    await db.commit()
+
+    logger.info(
+        "style_guide_version_activated",
+        version_id=version_id,
+        activated_at=now.isoformat(),
+    )
+
+    # Reload StyleRewriter in-process
+    reload_success = await reload_style_rewriter_async()
+
+    # Get updated status
+    style_rewriter = get_style_rewriter()
+    status = style_rewriter.get_status()
+
+    return {
+        "activated": True,
+        "version_id": version_id,
+        "activated_at": now.isoformat(),
+        "reload_success": reload_success,
+        "style_rewriter_status": status,
+    }
+
+
+class RollbackStyleVersionRequest(BaseModel):
+    """Request body for rolling back style guide version."""
+    version_id: Optional[str] = None
+    previous: Optional[bool] = False
+
+
+@app.post("/api/admin/persona/style/rollback")
+async def admin_rollback_style_version(
+    request: Request,
+    body: RollbackStyleVersionRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Rollback to a previous style guide version (admin only).
+
+    - If previous=true, activates the most recently deactivated version
+    - If version_id provided, activates that specific version
+    - Reloads StyleRewriter in-process
+    """
+    await verify_admin_key(request)
+
+    import json
+    from pathlib import Path
+    from sqlalchemy import text
+
+    target_version_id = body.version_id
+
+    # If previous=true, find most recently deactivated
+    if body.previous and not target_version_id:
+        query = text("""
+            SELECT version_id
+            FROM style_guide_versions
+            WHERE is_active = false AND deactivated_at IS NOT NULL
+            ORDER BY deactivated_at DESC
+            LIMIT 1
+        """)
+        result = await db.execute(query)
+        row = result.mappings().fetchone()
+
+        if not row:
+            raise HTTPException(
+                status_code=404,
+                detail="No previously active version found to rollback to"
+            )
+
+        target_version_id = row["version_id"]
+
+    if not target_version_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Must provide version_id or set previous=true"
+        )
+
+    # Check version exists
+    check_query = text("""
+        SELECT version_id, json_path, is_active
+        FROM style_guide_versions
+        WHERE version_id = :version_id
+    """)
+    result = await db.execute(check_query, {"version_id": target_version_id})
+    row = result.mappings().fetchone()
+
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Version {target_version_id} not found"
+        )
+
+    if row["is_active"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Version {target_version_id} is already active"
+        )
+
+    # Validate the JSON file
+    json_path = row["json_path"]
+    json_file = Path(json_path)
+    if not json_file.is_absolute():
+        json_file = Path(__file__).parent / json_path
+
+    if not json_file.exists():
+        raise HTTPException(
+            status_code=400,
+            detail=f"JSON file not found: {json_path}"
+        )
+
+    try:
+        with open(json_file, "r", encoding="utf-8") as f:
+            guide = json.load(f)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to load JSON: {str(e)}"
+        )
+
+    is_valid, error = _validate_hard_constraints(guide)
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Guide fails safety validation: {error}"
+        )
+
+    # Transaction: deactivate current, activate target
+    now = datetime.utcnow()
+
+    deactivate_query = text("""
+        UPDATE style_guide_versions
+        SET is_active = false, deactivated_at = :now
+        WHERE is_active = true
+    """)
+    await db.execute(deactivate_query, {"now": now})
+
+    activate_query = text("""
+        UPDATE style_guide_versions
+        SET is_active = true, activated_at = :now
+        WHERE version_id = :version_id
+    """)
+    await db.execute(activate_query, {"version_id": target_version_id, "now": now})
+
+    await db.commit()
+
+    logger.info(
+        "style_guide_version_rollback",
+        version_id=target_version_id,
+        activated_at=now.isoformat(),
+    )
+
+    # Reload StyleRewriter
+    reload_success = await reload_style_rewriter_async()
+
+    style_rewriter = get_style_rewriter()
+    status = style_rewriter.get_status()
+
+    return {
+        "rolled_back": True,
+        "version_id": target_version_id,
+        "activated_at": now.isoformat(),
+        "reload_success": reload_success,
+        "style_rewriter_status": status,
+    }
+
+
+@app.get("/api/admin/persona/style/status")
+async def admin_get_style_status(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get style guide status (admin only).
+
+    Returns StyleRewriter status plus active version details.
+    """
+    await verify_admin_key(request)
+
+    from sqlalchemy import text
+
+    # Get StyleRewriter status
+    style_rewriter = get_style_rewriter()
+    rewriter_status = style_rewriter.get_status()
+
+    # Get active version from DB (if any)
+    query = text("""
+        SELECT
+            version_id,
+            generated_at,
+            source,
+            tweet_count,
+            md_path,
+            json_path,
+            activated_at
+        FROM style_guide_versions
+        WHERE is_active = true
+        LIMIT 1
+    """)
+    result = await db.execute(query)
+    row = result.mappings().fetchone()
+
+    active_version = None
+    if row:
+        active_version = {
+            "version_id": row["version_id"],
+            "generated_at": row["generated_at"].isoformat() if row["generated_at"] else None,
+            "source": row["source"],
+            "tweet_count": row["tweet_count"],
+            "md_path": row["md_path"],
+            "json_path": row["json_path"],
+            "activated_at": row["activated_at"].isoformat() if row["activated_at"] else None,
+        }
+
+    # Get most recent proposal from DB (regardless of active status)
+    latest_query = text("""
+        SELECT
+            version_id,
+            generated_at,
+            source,
+            tweet_count,
+            is_active
+        FROM style_guide_versions
+        ORDER BY generated_at DESC
+        LIMIT 1
+    """)
+    latest_result = await db.execute(latest_query)
+    latest_row = latest_result.mappings().fetchone()
+
+    last_proposal = None
+    if latest_row:
+        last_proposal = {
+            "version_id": latest_row["version_id"],
+            "generated_at": latest_row["generated_at"].isoformat() if latest_row["generated_at"] else None,
+            "source": latest_row["source"],
+            "tweet_count": latest_row["tweet_count"],
+            "is_active": latest_row["is_active"],
+        }
+
+    # Get SelfStyleWorker stats (if available)
+    self_style_worker = get_self_style_worker()
+    self_style_worker_stats = None
+    if self_style_worker:
+        worker_stats = self_style_worker.get_stats()
+        self_style_worker_stats = {
+            "enabled": worker_stats.get("enabled", False),
+            "disabled_reason": worker_stats.get("disabled_reason"),
+            "last_run_status": worker_stats.get("last_run_status"),
+            "last_run_started_at": worker_stats.get("last_run_started_at"),
+            "last_run_finished_at": worker_stats.get("last_run_finished_at"),
+            "last_error": worker_stats.get("last_error"),
+            "last_proposal_version_id": worker_stats.get("last_proposal_version_id"),
+            "total_proposals_generated": worker_stats.get("total_proposals_generated", 0),
+            "total_proposals_skipped": worker_stats.get("total_proposals_skipped", 0),
+            "leader_lock": worker_stats.get("leader_lock", {}),
+        }
+
+    # Derive last_proposal_error from worker stats if available
+    last_proposal_error = None
+    if self_style_worker_stats and self_style_worker_stats.get("last_error"):
+        last_proposal_error = self_style_worker_stats["last_error"]
+
+    return {
+        "style_rewriter": rewriter_status,
+        "active_version": active_version,
+        "last_proposal": last_proposal,
+        "last_proposal_error": last_proposal_error,
+        "self_style_worker": self_style_worker_stats,
+        "hard_rules_enforced": {
+            "emojis_allowed": 0,
+            "hashtags_allowed": 0,
+        },
     }
 
 

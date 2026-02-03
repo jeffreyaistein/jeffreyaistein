@@ -1,7 +1,7 @@
 """
 Jeffrey AIstein - Persona Loader
 
-Loads persona configuration and generates system prompts.
+Loads persona configuration, knowledge files, and generates system prompts.
 """
 
 import json
@@ -12,6 +12,9 @@ from typing import Optional
 import structlog
 
 logger = structlog.get_logger()
+
+# Knowledge files location (relative to project root)
+KNOWLEDGE_DIR = Path(__file__).parent.parent.parent.parent / "docs" / "knowledge"
 
 
 @dataclass
@@ -122,6 +125,7 @@ def get_system_prompt(
     persona: Optional[PersonaConfig] = None,
     channel: str = "web",
     include_memory_context: bool = True,
+    include_knowledge: bool = False,
 ) -> str:
     """
     Generate the system prompt for the LLM.
@@ -181,6 +185,12 @@ def get_system_prompt(
         "- Short punchy punchlines for comedic timing",
         "- Avoid: excessive enthusiasm, sycophancy, moralizing lectures, empty reassurances",
         "",
+        "## ABSOLUTE FORMATTING RULES (Never Violate)",
+        "- NEVER use hashtags (#anything) - not a single one, ever",
+        "- NEVER use emojis - no unicode emoji characters whatsoever",
+        "- These rules apply to ALL outputs: web chat, X posts, drafts, previews",
+        "- This is a hard constraint, not a preference",
+        "",
         "## Response Guidelines",
         "- Reference evidence and data, then add sardonic commentary",
         "- Express uncertainty with self-aware humor about your limitations",
@@ -202,13 +212,19 @@ def get_system_prompt(
             "",
         ])
 
+    # Add knowledge context (CT/memecoin awareness)
+    if include_knowledge:
+        knowledge_summary = get_knowledge_summary()
+        prompt_parts.append(knowledge_summary)
+
     # Add channel-specific instructions
     if channel == "x":
         prompt_parts.extend([
             "## Platform: X (Twitter)",
             "- Keep responses concise - 280 character limit awareness",
             "- Punchier, more commentary-style delivery",
-            "- Use hashtags sparingly and only when relevant",
+            "- NEVER use hashtags - zero hashtags allowed",
+            "- NEVER use emojis - zero emojis allowed",
             "- Maintain character but adapt to public discourse",
             "",
         ])
@@ -219,6 +235,7 @@ def get_system_prompt(
             "- Can provide detailed explanations",
             "- Reference shared history with this user",
             "- Use formatting (lists, structure) when helpful",
+            "- NEVER use hashtags or emojis - applies to all channels",
             "",
         ])
 
@@ -243,3 +260,84 @@ def reset_persona() -> None:
     global _persona_instance
     _persona_instance = None
     logger.info("persona_reset")
+
+
+def load_knowledge(knowledge_type: str) -> Optional[str]:
+    """
+    Load knowledge content from markdown files.
+
+    Args:
+        knowledge_type: One of "kol", "vocabulary", "trenches", or "all"
+
+    Returns:
+        Knowledge content as string, or None if not found
+    """
+    knowledge_files = {
+        "kol": "KOL_INTELLIGENCE.md",
+        "vocabulary": "CT_VOCABULARY.md",
+        "trenches": "TRENCHES_CULTURE.md",
+    }
+
+    if knowledge_type == "all":
+        # Load all knowledge files
+        all_content = []
+        for name, filename in knowledge_files.items():
+            filepath = KNOWLEDGE_DIR / filename
+            if filepath.exists():
+                try:
+                    content = filepath.read_text(encoding="utf-8")
+                    all_content.append(f"## {name.upper()} KNOWLEDGE\n\n{content}")
+                except Exception as e:
+                    logger.warning("knowledge_load_failed", file=filename, error=str(e))
+        if all_content:
+            return "\n\n---\n\n".join(all_content)
+        return None
+
+    filename = knowledge_files.get(knowledge_type)
+    if not filename:
+        logger.warning("knowledge_type_unknown", type=knowledge_type)
+        return None
+
+    filepath = KNOWLEDGE_DIR / filename
+    if not filepath.exists():
+        logger.warning("knowledge_file_missing", path=str(filepath))
+        return None
+
+    try:
+        content = filepath.read_text(encoding="utf-8")
+        logger.info("knowledge_loaded", type=knowledge_type, file=filename)
+        return content
+    except Exception as e:
+        logger.warning("knowledge_load_failed", file=filename, error=str(e))
+        return None
+
+
+def get_knowledge_summary() -> str:
+    """
+    Get a condensed summary of key knowledge for system prompts.
+
+    Returns a brief overview without full details for context injection.
+    """
+    summary_parts = [
+        "## Contextual Knowledge (Summary)",
+        "",
+        "### Crypto Twitter (CT) Awareness",
+        "- Familiar with KOL ecosystem: Ansem, Murad, Hsaka, ZachXBT",
+        "- Understands tribal vocabulary: gm, wagmi, ngmi, lfg, nfa, dyor, iykyk",
+        "- Knows pump.fun/trenches culture: degens, rugs, moons, bonding curves",
+        "- Recognizes cabal dynamics: influencers, smart money, sniper networks",
+        "",
+        "### Communication Context",
+        "- CT values brevity - short, punchy messages",
+        "- Observations > guarantees",
+        "- Self-awareness and humor respected",
+        "- Never desperate, never begging for engagement",
+        "",
+        "### AIstein's Position",
+        "- Observe and analyze, don't participate as a trader",
+        "- Use vocabulary for understanding, not mimicry",
+        "- Apply characteristic sarcasm to observations",
+        "- Provide context without endorsing speculation",
+        "",
+    ]
+    return "\n".join(summary_parts)

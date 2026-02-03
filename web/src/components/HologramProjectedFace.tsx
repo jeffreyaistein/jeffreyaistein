@@ -11,10 +11,11 @@ import type { AvatarState } from '@/components/HologramAvatar3D'
 const DEBUG_ENABLED = process.env.NEXT_PUBLIC_AVATAR_DEBUG === 'true'
 
 // Default face alignment settings (object space projection)
+// Calibrated values from debug session - face aligned on mesh
 const DEFAULT_SETTINGS = {
-  faceScale: 1.0,        // Scale factor for face mapping (higher = smaller face)
-  faceOffsetX: 0.0,      // Horizontal offset
-  faceOffsetY: 0.0,      // Vertical offset
+  faceScale: 0.25,       // Calibrated: mesh coords ~4x texture size
+  faceOffsetX: -0.05,    // Calibrated: slight left shift
+  faceOffsetY: 0.0,      // Calibrated: centered vertically
   flipX: 0.0,            // 0 = no flip, 1 = flip horizontally
   flipY: 0.0,            // 0 = no flip, 1 = flip vertically
   frontFadeStrength: 2.0, // How quickly face fades on sides (higher = sharper)

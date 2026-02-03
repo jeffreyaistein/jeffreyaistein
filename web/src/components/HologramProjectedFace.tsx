@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useState, useMemo } from 'react'
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
@@ -10,8 +10,11 @@ import type { AvatarState } from '@/components/HologramAvatar3D'
 // Debug mode from environment
 const DEBUG_ENABLED = process.env.NEXT_PUBLIC_AVATAR_DEBUG === 'true'
 
+// LocalStorage key for calibration persistence
+const CALIBRATION_STORAGE_KEY = 'projectedFace_calibration'
+
 // Default face alignment settings (object space projection)
-// Calibrated values from debug session - face aligned on mesh
+// These are the code defaults - can be overridden by localStorage calibration
 const DEFAULT_SETTINGS = {
   faceScale: 0.25,       // Calibrated: mesh coords ~4x texture size
   faceOffsetX: -0.05,    // Calibrated: slight left shift
@@ -22,6 +25,33 @@ const DEFAULT_SETTINGS = {
   mouthIntensity: 1.5,
   scanlineIntensity: 0.0, // Default off
   noiseIntensity: 0.0,    // Default off
+}
+
+// Load calibration from localStorage
+function loadCalibration(): typeof DEFAULT_SETTINGS {
+  if (typeof window === 'undefined') return DEFAULT_SETTINGS
+  try {
+    const saved = localStorage.getItem(CALIBRATION_STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      console.log('[ProjectedFace] Loaded calibration from localStorage:', parsed)
+      return { ...DEFAULT_SETTINGS, ...parsed }
+    }
+  } catch (e) {
+    console.warn('[ProjectedFace] Failed to load calibration:', e)
+  }
+  return DEFAULT_SETTINGS
+}
+
+// Save calibration to localStorage
+function saveCalibration(settings: typeof DEFAULT_SETTINGS): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(CALIBRATION_STORAGE_KEY, JSON.stringify(settings))
+    console.log('[ProjectedFace] Saved calibration to localStorage:', settings)
+  } catch (e) {
+    console.warn('[ProjectedFace] Failed to save calibration:', e)
+  }
 }
 
 // Projected Face Shader - projects face texture onto mesh using OBJECT SPACE
@@ -147,7 +177,7 @@ const ProjectedFaceShader = {
       // Start with face color (no green tint)
       vec3 color = faceColor.rgb;
 
-      // Mouth mask for speaking animation
+      // Mouth mask for speaking animation - uses SAME faceUV for perfect alignment
       float mouthGlow = 0.0;
       if (avatarState > 2.5 && amplitude > 0.0) {
         // Speaking state
@@ -203,12 +233,14 @@ interface ProjectedFaceProps {
   state: AvatarState
   amplitude: number
   settings: typeof DEFAULT_SETTINGS
+  paused: boolean  // Animation pause for calibration
 }
 
 // The 3D model with projected face
-function ProjectedFaceModel({ state, amplitude, settings }: ProjectedFaceProps) {
+function ProjectedFaceModel({ state, amplitude, settings, paused }: ProjectedFaceProps) {
   const groupRef = useRef<THREE.Group>(null)
   const materialRef = useRef<THREE.ShaderMaterial | null>(null)
+  const frozenTimeRef = useRef<number>(0)
 
   // Load the GLB model
   const { scene } = useGLTF('/assets/models/aistein/aistein_low.glb')
@@ -304,12 +336,19 @@ function ProjectedFaceModel({ state, amplitude, settings }: ProjectedFaceProps) 
       uniforms.amplitude.value += (amplitude - uniforms.amplitude.value) * 0.15
     }
 
-    // Subtle floating animation
+    // Subtle floating animation - ONLY if not paused
     if (groupRef.current) {
-      const time = Date.now() * 0.001
-      groupRef.current.position.y = Math.sin(time * 0.8) * 0.03
-      // Very subtle rotation
-      groupRef.current.rotation.y = Math.sin(time * 0.3) * 0.05
+      if (paused) {
+        // Freeze at current position when paused
+        groupRef.current.position.y = Math.sin(frozenTimeRef.current * 0.8) * 0.03
+        groupRef.current.rotation.y = Math.sin(frozenTimeRef.current * 0.3) * 0.05
+      } else {
+        const time = Date.now() * 0.001
+        frozenTimeRef.current = time
+        groupRef.current.position.y = Math.sin(time * 0.8) * 0.03
+        // Very subtle rotation
+        groupRef.current.rotation.y = Math.sin(time * 0.3) * 0.05
+      }
     }
   })
 
@@ -321,7 +360,7 @@ function ProjectedFaceModel({ state, amplitude, settings }: ProjectedFaceProps) 
 }
 
 // Scene setup
-function ProjectedFaceScene({ state, amplitude, settings }: ProjectedFaceProps) {
+function ProjectedFaceScene({ state, amplitude, settings, paused }: ProjectedFaceProps) {
   const { gl } = useThree()
 
   useEffect(() => {
@@ -337,7 +376,7 @@ function ProjectedFaceScene({ state, amplitude, settings }: ProjectedFaceProps) 
       <directionalLight position={[0, 0, 5]} intensity={0.5} />
 
       {/* The avatar model */}
-      <ProjectedFaceModel state={state} amplitude={amplitude} settings={settings} />
+      <ProjectedFaceModel state={state} amplitude={amplitude} settings={settings} paused={paused} />
     </>
   )
 }
@@ -348,11 +387,15 @@ function DebugControls({
   selectedParam,
   state,
   amplitude,
+  paused,
+  calibrationMode,
 }: {
   settings: typeof DEFAULT_SETTINGS
   selectedParam: number
   state: AvatarState
   amplitude: number
+  paused: boolean
+  calibrationMode: boolean
 }) {
   const paramNames: (keyof typeof DEFAULT_SETTINGS)[] = [
     'faceScale',
@@ -367,26 +410,35 @@ function DebugControls({
   ]
 
   return (
-    <div className="absolute top-2 left-2 text-xs text-white bg-black/70 px-3 py-2 rounded space-y-1 font-mono">
-      <div className="text-cyan-400 font-bold mb-2">PROJECTED_FACE (Object Space)</div>
-      <div>State: {state} | Amp: {amplitude.toFixed(2)}</div>
+    <div className="absolute top-2 left-2 text-xs text-white bg-black/80 px-3 py-2 rounded space-y-1 font-mono">
+      <div className="text-cyan-400 font-bold mb-1">PROJECTED_FACE Calibration</div>
+      <div className="flex gap-2">
+        <span>State: {state}</span>
+        <span>Amp: {amplitude.toFixed(2)}</span>
+      </div>
+      <div className="flex gap-2">
+        {paused && <span className="text-yellow-400">[PAUSED]</span>}
+        {calibrationMode && <span className="text-green-400">[CALIB]</span>}
+      </div>
       <div className="border-t border-gray-600 my-2" />
 
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {paramNames.map((name, idx) => (
-          <div key={name} className={`flex justify-between ${selectedParam === idx ? 'text-yellow-300' : ''}`}>
+          <div key={name} className={`flex justify-between ${selectedParam === idx ? 'text-yellow-300 font-bold' : ''}`}>
             <span>{idx + 1}. {name}:</span>
             <span className={selectedParam === idx ? 'text-yellow-300' : 'text-cyan-300'}>
-              {settings[name].toFixed(2)}
+              {settings[name].toFixed(3)}
             </span>
           </div>
         ))}
       </div>
 
       <div className="border-t border-gray-600 my-2" />
-      <div className="text-[10px] text-gray-500">
-        <div>1-9: select param | Arrows: adjust</div>
-        <div>Shift: fine (0.01) | R: reset | F: toggle flip</div>
+      <div className="text-[10px] text-gray-400 space-y-0.5">
+        <div>1-9: select | Arrows: adjust</div>
+        <div>Shift: fine (0.001) | R: reset</div>
+        <div>F: flip | P: pause | C: calibration view</div>
+        <div className="text-green-400">S: SAVE to localStorage</div>
       </div>
     </div>
   )
@@ -407,10 +459,53 @@ export function HologramProjectedFace({
   const [isClient, setIsClient] = useState(false)
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [selectedParam, setSelectedParam] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const [calibrationMode, setCalibrationMode] = useState(false)
+  const [preCalibrationSettings, setPreCalibrationSettings] = useState<typeof DEFAULT_SETTINGS | null>(null)
 
+  // Load calibration from localStorage on mount
   useEffect(() => {
     setIsClient(true)
+    const loaded = loadCalibration()
+    setSettings(loaded)
   }, [])
+
+  // Get effective settings (calibration mode disables effects)
+  const effectiveSettings = useMemo(() => {
+    if (calibrationMode) {
+      return {
+        ...settings,
+        scanlineIntensity: 0,
+        noiseIntensity: 0,
+      }
+    }
+    return settings
+  }, [settings, calibrationMode])
+
+  // Save calibration callback
+  const handleSave = useCallback(() => {
+    saveCalibration(settings)
+    alert(`Calibration saved!\n\nValues:\n${JSON.stringify(settings, null, 2)}`)
+  }, [settings])
+
+  // Toggle calibration mode
+  const toggleCalibrationMode = useCallback(() => {
+    if (!calibrationMode) {
+      // Entering calibration mode - save current settings
+      setPreCalibrationSettings(settings)
+      setCalibrationMode(true)
+    } else {
+      // Exiting calibration mode - restore effects if they were on
+      if (preCalibrationSettings) {
+        setSettings(prev => ({
+          ...prev,
+          scanlineIntensity: preCalibrationSettings.scanlineIntensity,
+          noiseIntensity: preCalibrationSettings.noiseIntensity,
+        }))
+      }
+      setCalibrationMode(false)
+    }
+  }, [calibrationMode, preCalibrationSettings, settings])
 
   // Keyboard controls for debug mode
   useEffect(() => {
@@ -428,9 +523,13 @@ export function HologramProjectedFace({
       'noiseIntensity',
     ]
 
+    // Fine params get 0.001 precision, others get 0.01
+    const fineParams = ['faceScale', 'faceOffsetX', 'faceOffsetY']
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      const step = e.shiftKey ? 0.01 : 0.05
       const key = paramKeys[selectedParam]
+      const isFineParam = fineParams.includes(key)
+      const step = e.shiftKey ? (isFineParam ? 0.001 : 0.01) : 0.05
 
       switch (e.key) {
         case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
@@ -440,14 +539,14 @@ export function HologramProjectedFace({
         case 'ArrowRight':
           setSettings(prev => ({
             ...prev,
-            [key]: Math.round((prev[key] + step) * 100) / 100,
+            [key]: Math.round((prev[key] + step) * 1000) / 1000,
           }))
           break
         case 'ArrowDown':
         case 'ArrowLeft':
           setSettings(prev => ({
             ...prev,
-            [key]: Math.round((prev[key] - step) * 100) / 100,
+            [key]: Math.round((prev[key] - step) * 1000) / 1000,
           }))
           break
         case 'f':
@@ -460,6 +559,21 @@ export function HologramProjectedFace({
             }))
           }
           break
+        case 'p':
+        case 'P':
+          // Toggle pause (freeze float animation)
+          setPaused(prev => !prev)
+          break
+        case 'c':
+        case 'C':
+          // Toggle calibration mode (disable effects)
+          toggleCalibrationMode()
+          break
+        case 's':
+        case 'S':
+          // Save calibration to localStorage
+          handleSave()
+          break
         case 'r':
         case 'R':
           setSettings(DEFAULT_SETTINGS)
@@ -469,7 +583,7 @@ export function HologramProjectedFace({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedParam])
+  }, [selectedParam, handleSave, toggleCalibrationMode])
 
   // Log settings changes for baking
   useEffect(() => {
@@ -497,7 +611,12 @@ export function HologramProjectedFace({
         gl={{ alpha: true, antialias: true }}
         style={{ background: 'transparent' }}
       >
-        <ProjectedFaceScene state={state} amplitude={amplitude} settings={settings} />
+        <ProjectedFaceScene
+          state={state}
+          amplitude={amplitude}
+          settings={effectiveSettings}
+          paused={paused}
+        />
       </Canvas>
 
       {/* Debug controls */}
@@ -507,6 +626,8 @@ export function HologramProjectedFace({
           selectedParam={selectedParam}
           state={state}
           amplitude={amplitude}
+          paused={paused}
+          calibrationMode={calibrationMode}
         />
       )}
     </div>

@@ -1,0 +1,2687 @@
+{
+  "generated_at": "2026-02-03T00:16:03.850979+00:00",
+  "profile_count": 222,
+  "profiles": {
+    "frankdegods": {
+      "cred": 7,
+      "reach": "medium",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "Match Frank's aggressive and meme-heavy style, but avoid being too confrontational. Topics: transpar",
+      "flags": [
+        "avoid_politics"
+      ],
+      "topics": [
+        "transparency",
+        "ai",
+        "memes"
+      ],
+      "avoid": [
+        "politics"
+      ]
+    },
+    "rajgokal": {
+      "cred": 9,
+      "reach": "high",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "Engage with Raj Gokal in a direct, confident, and community-oriented manner. Topics: Solana growth, ",
+      "flags": [
+        "high_credibility",
+        "high_collab_potential"
+      ],
+      "topics": [
+        "Solana growth",
+        "ecosystem development",
+        "community building"
+      ],
+      "avoid": [
+        "criticism of Solana or its leaders"
+      ]
+    },
+    "notthreadguy": {
+      "cred": 7,
+      "reach": "medium",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "Match their aggressive, meme-heavy tone, but avoid any political or controversial topics. Topics: ma",
+      "flags": [
+        "avoid_politics"
+      ],
+      "topics": [
+        "market commentary",
+        "trading strategies",
+        "memes"
+      ],
+      "avoid": [
+        "politics",
+        "social issues"
+      ]
+    },
+    "solbigbrain": {
+      "cred": 8,
+      "reach": "high",
+      "traits": [
+        "aggressive",
+        "hype_beast"
+      ],
+      "notes": "Match their assertive and confident tone, while focusing on Solana-related topics. Topics: Solana ec",
+      "flags": [
+        "high_credibility"
+      ],
+      "topics": [
+        "Solana ecosystem updates",
+        "market analysis",
+        "trading strategies"
+      ],
+      "avoid": [
+        "personal attacks or drama"
+      ]
+    },
+    "goatedondsticks": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xzyaf": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "levisnft": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ignhail": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "bigbagsbobby": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xenjooyer": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "lectronnft": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "kadenox": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "m0nkicrypto": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "redwithbag": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "insentos": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xpradaa": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ramonos": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "10xjdog": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "paincrypt0": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "uniswapvillain": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "technical"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cented7": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "bradjae": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ataberk": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ramsetx": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "loopierr": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "nosa1x": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "chill",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xjumpman": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "notdecu": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "jijo_exe": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "casino616": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cryptovillain26": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "blixze": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "chestererer": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "im0pnl": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cookerflips": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "chill",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ga__ke": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cladzsol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "coasty_sol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "technical"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "treysocial": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "spunosounds": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "973meech": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "kreo444": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "dior100x": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "shahh": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "00macxbt": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "fz7": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "driz1x_": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "solanadegen": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "clownstrenches": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cryptokillua99": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "imthebetman": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "trenchersetsu": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "nftkeano": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "naughtygrimace": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "latuche95": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "winallday_": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "k4yesol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "fl0wjoe": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cesco_sol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "pr6spr": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "pavelbtc": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "exitliquid1ty": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "xunle111": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "oura456": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "lynk0x": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "monarchbtc": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "insydercrypto": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "lilmoonlambo": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "phineas_sol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "the__solstice": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ieatjeets": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xgroovy": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "gr3gor14n": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "jeetburner": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "saint_pablo123": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xsweep": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "dingalingts": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "xandereef": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ohzarke": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "eth_exy": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "theunipcs": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "finnbags": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "doncaarbon": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "sizeab1e": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "oscarexitliq": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "prxnterr": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "bronsicooks": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "staticctrades": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "zilxbt": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "publixplayz": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "guappy_eth": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "bihoznfts": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "hesikillaz": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "giann2k": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "luckedhub": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "putrickk": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "mambatrades_": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "psykogem": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "moneymaykah_": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "evansofweb3": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "owlfn_": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "limpcritisism": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "mastern0de3": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "insidecalls": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cryptolaanie": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "beezyscores": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "hype",
+        "technical"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "travonsol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "goobfarmedyou": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "hashbergers": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "flamesonsol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "leensx100": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "aroaonsol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xsevere": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "vibed333": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ottabag": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "solanaplays": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "simplyclassic69": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ihateoop": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "robopboc": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "mercularx": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "timmpix1": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xpeely": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "radiancebrr": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "degensaif": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "yokaicapital": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "bandeez": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "zinceth": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "elchartox": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "s1mple_s1mple": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cryptolyxe": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "jackduvalstocks": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "padly1k": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "thedefiape": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "thisisdjen": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "onchainscammer": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "10piecedawg": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "onlyterp": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "hype",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "tstar_frr1": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "limfork": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "zefwashere": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "jadenonchain": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cc2ventures": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "fa1rtrade": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "profitierr": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "sue_xbt": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "chill",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "log100x": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "youniz_xlz": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "advyth": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "aightbet": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "rektober": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "technical"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ferbsol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "doloxbt": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xsushi": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "sullyfromdeets": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "qtdegen": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ratwizardx": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0gantd": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "zoruuuuu": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xkitty69": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "nachsol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "fashrcrypto": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "heyitsyolotv": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "w3b3k3y": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "crypt0wu": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "whaiecrypto": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "onlyljc": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "killzzsol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "stackeronsol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "burix_sol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "thejester": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "riccorosas": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "prosciuttosol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "hugomartingale": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "thekryptoking_": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "lethal_affu": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xjrmm": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ohbrox": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "soljakey": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "kilorippy": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "alxcooks_off": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "chill",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "blknoiz06": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "untaxxable": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "orangie": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "bigwarzeth": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xsolomon": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "fawcette_": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "h14onx": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "littlemustacho": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "technoviking46": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "legend_calls": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "lecksol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "tuults69": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "goyimpnl": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "traderpow": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ericcryptoman": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "chefin100x": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xmistblade": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "issathecooker": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "earltrades": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "metaversejoji": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "xelf_sol": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "beaverd": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "technical"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "bitboyjay": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "retardmode": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "gvq_xx": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "henn100x": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "jidn_w": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ohfrostyyy": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "_bolivian": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "absolquant": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "cartithemenace": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "angitradez": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "tilcrypto": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "valueandtime": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "daumenxyz": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "0xdutch_": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "chill"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "joevargas": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "kevsznx": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "nyhrox": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "therealzrool": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "solrevv": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "meme_heavy"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    },
+    "ignroxo": {
+      "cred": 5,
+      "reach": "unknown",
+      "traits": [
+        "aggressive",
+        "hype"
+      ],
+      "notes": "",
+      "flags": [],
+      "topics": [],
+      "avoid": []
+    }
+  }
+}

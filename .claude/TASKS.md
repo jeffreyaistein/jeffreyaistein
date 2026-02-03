@@ -117,6 +117,78 @@ See STATE.md for full details. Summary:
 
 ---
 
+---
+
+## TTS Integration (ElevenLabs)
+
+### TTS-1: ElevenLabs API Key Setup
+**Status: COMPLETE** ✅
+
+**Acceptance Criteria:**
+- [x] API key created with minimal permissions (TTS only)
+- [x] Voice selected (scary male) and Voice ID obtained
+- [x] Key and Voice ID stored securely (Fly secrets)
+
+**Details:**
+- Voice: Calen Voss
+- Voice ID: S44KQ3oLFckbxgyKfold
+- Model: eleven_monolingual_v1
+- Fly secrets: ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID, ELEVENLABS_MODEL_ID
+
+---
+
+### TTS-2: Backend /api/tts Endpoint
+**Status: COMPLETE** ✅
+
+**Acceptance Criteria:**
+- [x] POST /api/tts accepts {text}
+- [x] Enforces hard rules (strip emojis/hashtags)
+- [x] Calls ElevenLabs API with xi-api-key header
+- [x] Returns audio/mpeg
+- [x] Rate limiting and max text length enforced
+- [x] Fly secrets set: ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID
+
+**Files created:**
+- `api/services/tts.py` - ElevenLabs TTS client
+- `api/config.py` - Added TTS settings
+
+**Endpoint:** POST /api/tts
+- Input: `{"text": "..."}`
+- Output: audio/mpeg
+- Rate limit: 10 req/min per IP
+- Max text: 1000 chars
+
+---
+
+### TTS-3: Frontend Audio Playback
+**Status: COMPLETE** ✅
+
+**Acceptance Criteria:**
+- [x] "Enable Voice" toggle (satisfies browser autoplay rules)
+- [x] Calls /api/tts after assistant reply completes
+- [x] Plays audio through WebAudio
+- [x] Drives avatar amplitude from real audio (replaces simulated speaking)
+- [x] Voice On/Off indicator and error handling
+
+**Files created/modified:**
+- `web/src/hooks/useTTS.ts` - TTS hook with voice toggle, audio playback
+- `web/src/components/ChatInterface.tsx` - VoiceToggle button, TTS integration
+- `web/src/hooks/useAvatarDriver.ts` - Already supports audioElement for real amplitude
+
+---
+
+### TTS-4: Documentation & Verification
+**Status: COMPLETE** ✅
+
+**Acceptance Criteria:**
+- [x] docs/TTS_SETUP.md with full setup instructions
+- [x] Smoke test endpoint to verify TTS works (/api/tts/status)
+
+**File created:**
+- `web/docs/TTS_SETUP.md` - Complete setup guide
+
+---
+
 ## Execution Rules
 
 1. Work strictly ONE task at a time

@@ -83,14 +83,18 @@ async def get_session_from_request(request: Request) -> Optional[str]:
 
 
 def set_session_cookie(response: Response, session_id: str) -> None:
-    """Set session cookie on response."""
+    """Set session cookie on response.
+
+    Note: samesite="none" is required for cross-origin WebSocket connections.
+    secure=True is required when samesite="none".
+    """
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=session_id,
         max_age=SESSION_COOKIE_MAX_AGE,
         httponly=True,
-        secure=not settings.debug,  # Secure in production
-        samesite="lax",
+        secure=True,  # Required for samesite=none
+        samesite="none",  # Required for cross-origin (Vercel -> Fly.io)
     )
 
 

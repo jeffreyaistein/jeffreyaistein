@@ -5,6 +5,19 @@
 > **End Date**: 2026-02-05 16:30 UTC
 > **Environment**: Fly.io (https://jeffreyaistein.fly.dev)
 
+## 72-Hour Default Posture
+
+During the validation period, maintain these settings:
+
+| Setting | Value | Reason |
+|---------|-------|--------|
+| `safe_mode` | **true** | Prevents all posting; read-only mode |
+| `approval_required` | **true** | Drafts require admin approval before posting |
+
+**Do NOT disable SAFE_MODE for the full 72-hour run** unless specifically approved for a controlled live post test.
+
+**Toggle modes via PATCH endpoint, not by restarting the app.** Settings stored in the database take effect immediately.
+
 ---
 
 ## Quick Reference
@@ -24,7 +37,38 @@ Invoke-RestMethod -Uri "https://jeffreyaistein.fly.dev/health/ready"
 "C:\Users\Louie\.fly\bin\fly.exe" status --app jeffreyaistein
 ```
 
-### Emergency Stop
+### Toggle SAFE_MODE (No Restart Required!)
+
+**IMPORTANT**: Use the PATCH endpoint to toggle SAFE_MODE - do NOT restart the app just to change modes.
+
+```powershell
+# Get admin key from .env
+$key = (Get-Content "C:\Users\Louie\apps\api\.env" | Select-String "ADMIN_API_KEY=").ToString().Split("=")[1]
+$headers = @{"X-Admin-Key" = $key; "Content-Type" = "application/json"}
+
+# Enable SAFE_MODE (read-only, no posting)
+Invoke-RestMethod -Method Patch -Uri "https://jeffreyaistein.fly.dev/api/admin/social/settings" `
+  -Headers $headers -Body '{"safe_mode": true}'
+
+# Disable SAFE_MODE (allow posting)
+Invoke-RestMethod -Method Patch -Uri "https://jeffreyaistein.fly.dev/api/admin/social/settings" `
+  -Headers $headers -Body '{"safe_mode": false}'
+```
+
+Or with curl:
+```bash
+# Enable SAFE_MODE
+curl -X PATCH -H "X-Admin-Key: [KEY]" -H "Content-Type: application/json" \
+  -d '{"safe_mode": true}' \
+  https://jeffreyaistein.fly.dev/api/admin/social/settings
+
+# Disable SAFE_MODE
+curl -X PATCH -H "X-Admin-Key: [KEY]" -H "Content-Type: application/json" \
+  -d '{"safe_mode": false}' \
+  https://jeffreyaistein.fly.dev/api/admin/social/settings
+```
+
+### Emergency Stop (Full Disable)
 ```powershell
 "C:\Users\Louie\.fly\bin\fly.exe" secrets set X_BOT_ENABLED=false --app jeffreyaistein
 ```
@@ -221,13 +265,16 @@ Automated thresholds that trigger immediate action. If any condition is met, exe
 
 **Remediation**:
 ```powershell
-# Step 1: Enable safe mode to stop all posting attempts
-"C:\Users\Louie\.fly\bin\fly.exe" secrets set SAFE_MODE=true --app jeffreyaistein
+# Step 1: Enable safe mode via PATCH (no restart required)
+$key = (Get-Content "C:\Users\Louie\apps\api\.env" | Select-String "ADMIN_API_KEY=").ToString().Split("=")[1]
+$headers = @{"X-Admin-Key" = $key; "Content-Type" = "application/json"}
+Invoke-RestMethod -Method Patch -Uri "https://jeffreyaistein.fly.dev/api/admin/social/settings" `
+  -Headers $headers -Body '{"safe_mode": true}'
 
-# Step 2: Increase backoff time
+# Step 2: If rate limits continue, increase backoff (requires restart)
 "C:\Users\Louie\.fly\bin\fly.exe" secrets set X_API_BACKOFF_BASE_SECONDS=120 --app jeffreyaistein
 
-# Step 3: Reduce poll frequency
+# Step 3: Reduce poll frequency (requires restart)
 "C:\Users\Louie\.fly\bin\fly.exe" secrets set X_POLL_INTERVAL_SECONDS=90 --app jeffreyaistein
 ```
 
@@ -243,10 +290,13 @@ Automated thresholds that trigger immediate action. If any condition is met, exe
 
 **Remediation**:
 ```powershell
-# Step 1: Enable safe mode immediately
-"C:\Users\Louie\.fly\bin\fly.exe" secrets set SAFE_MODE=true --app jeffreyaistein
+# Step 1: Enable safe mode via PATCH (no restart required)
+$key = (Get-Content "C:\Users\Louie\apps\api\.env" | Select-String "ADMIN_API_KEY=").ToString().Split("=")[1]
+$headers = @{"X-Admin-Key" = $key; "Content-Type" = "application/json"}
+Invoke-RestMethod -Method Patch -Uri "https://jeffreyaistein.fly.dev/api/admin/social/settings" `
+  -Headers $headers -Body '{"safe_mode": true}'
 
-# Step 2: If errors continue, disable X bot entirely
+# Step 2: If errors continue, disable X bot entirely (requires restart)
 "C:\Users\Louie\.fly\bin\fly.exe" secrets set X_BOT_ENABLED=false --app jeffreyaistein
 
 # Step 3: Investigate specific error
@@ -353,12 +403,14 @@ if ($health.checks.database -eq $false) { Write-Host "DATABASE DOWN" -Foreground
 | Tripwire | Condition | Severity | First Action |
 |----------|-----------|----------|--------------|
 | Ingestion Stall | No poll > 3 min | HIGH | Restart app |
-| Rate Limits | > 3 429s/hour | MEDIUM | Enable SAFE_MODE |
-| Exceptions | > 5 errors/10min | HIGH | Enable SAFE_MODE |
-| Restart Loops | > 3/hour | CRITICAL | Disable X_BOT |
-| Redis Lost | redis=false | HIGH | Disable X_BOT |
+| Rate Limits | > 3 429s/hour | MEDIUM | Enable SAFE_MODE via PATCH |
+| Exceptions | > 5 errors/10min | HIGH | Enable SAFE_MODE via PATCH |
+| Restart Loops | > 3/hour | CRITICAL | Disable X_BOT (secrets) |
+| Redis Lost | redis=false | HIGH | Disable X_BOT (secrets) |
 | Database Lost | database=false | CRITICAL | Restart Postgres |
-| Auth Failures | 401/403 | CRITICAL | Disable X_BOT |
+| Auth Failures | 401/403 | CRITICAL | Disable X_BOT (secrets) |
+
+> **Note**: Use PATCH endpoint for SAFE_MODE toggles (instant, no restart). Use `fly secrets` only for X_BOT_ENABLED (requires restart).
 
 ---
 

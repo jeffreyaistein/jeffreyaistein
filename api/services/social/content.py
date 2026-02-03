@@ -12,7 +12,7 @@ import structlog
 
 from services.llm import get_llm_provider
 from services.llm.base import LLMMessage, LLMResponse
-from services.persona import get_system_prompt, load_persona
+from services.persona import get_system_prompt, load_persona, get_style_rewriter, get_kol_context
 
 logger = structlog.get_logger()
 
@@ -63,6 +63,7 @@ class ContentGenerator:
         self.llm = llm_provider or get_llm_provider()
         self.persona = load_persona()
         self.max_length = get_max_tweet_length()
+        self.style_rewriter = get_style_rewriter()
 
     async def generate_timeline_post(
         self,
@@ -197,6 +198,11 @@ Style notes:
 - NO engagement bait ("RT if you agree", "thoughts?")
 - NO empty platitudes or inspirational garbage
 """
+        # Add style guide context if available
+        if self.style_rewriter.is_available():
+            style_context = self.style_rewriter.get_style_context_for_prompt()
+            additional = additional + "\n" + style_context
+
         return base_prompt + "\n" + additional
 
     def _build_timeline_user_prompt(self, topic: str) -> str:
@@ -253,6 +259,12 @@ Style notes:
                 text = msg.get("text", "")
                 parts.append(f"  @{author}: {text}")
 
+        # Add KOL engagement context if available
+        kol_context = get_kol_context(author_username)
+        if kol_context:
+            parts.append(f"\n[KOL Context: {kol_context}]")
+            logger.debug("kol_context_injected", handle=author_username)
+
         parts.append("\nGenerate a reply. Just output the reply text (without the @mention prefix):")
 
         return "\n".join(parts)
@@ -289,6 +301,15 @@ Style notes:
         for prefix in prefixes_to_remove:
             if text.startswith(prefix):
                 text = text[len(prefix):].strip()
+
+        # Apply style rewriter if available
+        if self.style_rewriter.is_available():
+            text = self.style_rewriter.rewrite_for_x(text)
+
+            # Log any style suggestions for debugging
+            suggestions = self.style_rewriter.suggest_improvements(text)
+            if suggestions:
+                logger.debug("style_suggestions", suggestions=suggestions)
 
         # Truncate if needed
         if len(text) > max_length:

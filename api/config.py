@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     tts_provider: str = "elevenlabs"
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
+    elevenlabs_model_id: str = "eleven_monolingual_v1"
+    elevenlabs_output_format: str = "mp3_44100_128"
+    tts_max_text_length: int = 1000  # Max characters per TTS request
+    tts_rate_limit_per_minute: int = 10  # Rate limit for TTS requests
 
     # Image Generation
     image_gen_provider: str = "openai"

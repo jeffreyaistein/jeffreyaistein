@@ -61,3 +61,8 @@ logs/
 *secrets*.json
 *.pem
 *.key
+
+# Raw datasets (local only, not committed)
+# See docs/RAW_DATA_SETUP.md and docs/EPSTEIN_DATA_IMPORT.md for setup
+data/raw/**/*
+!data/raw/**/.gitkeep

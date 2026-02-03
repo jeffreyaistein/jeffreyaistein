@@ -213,8 +213,10 @@ async def get_runtime_setting(key: str, env_var: str, default: str = "false") ->
     if db_value is not None:
         return db_value.lower() in ("true", "1", "yes")
 
-    env_value = os.getenv(env_var, default)
-    return env_value.lower() in ("true", "1", "yes")
+    # Convert default to string for os.getenv (it expects str, not bool)
+    default_str = str(default).lower() if default is not None else "false"
+    env_value = os.getenv(env_var, default_str)
+    return str(env_value).lower() in ("true", "1", "yes")
 
 
 __all__ = [

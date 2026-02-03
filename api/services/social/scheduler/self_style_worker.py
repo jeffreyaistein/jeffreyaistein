@@ -426,7 +426,12 @@ class SelfStyleWorker:
 
             version_id = result["version_id"]
             tweet_count = result["tweet_count"]
-            generated_at = result["generated_at"]
+            # Parse generated_at - it comes as ISO string from propose_style_guide
+            generated_at_str = result["generated_at"]
+            if isinstance(generated_at_str, str):
+                generated_at = datetime.fromisoformat(generated_at_str.replace("Z", "+00:00"))
+            else:
+                generated_at = generated_at_str
             md_path = result["files"]["markdown"]
             json_path = result["files"]["json"]
 

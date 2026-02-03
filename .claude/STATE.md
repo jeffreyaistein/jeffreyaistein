@@ -1383,27 +1383,47 @@ saveVoiceEnabled(true)  // Persist to localStorage
 
 ---
 
-#### 2.2: Play ElevenLabs audio after messages
+#### 2.2: Play ElevenLabs audio after messages ✅
 
-**Status: PENDING**
+**Status: COMPLETE**
+
+**Changes:**
+- Track lastHttpStatus, lastBytes, lastPlayError, lastAudioEnded
+- Capture specific play() errors (NotAllowedError, NotSupportedError)
+- Display error string in UI when play fails
+- Added debugInfo object for debug panel
 
 ---
 
-#### 2.3: Drive hologram amplitude from real audio
+#### 2.3: Drive hologram amplitude from real audio ✅
 
-**Status: PENDING**
+**Status: COMPLETE**
+
+**Changes:**
+- Audio analyser created in useTTS (shares AudioContext)
+- Computes RMS amplitude 0-1 at 60fps during playback
+- Smooth interpolation and decay for natural mouth movement
+- ttsAmplitude passed to HologramSection for avatar
 
 ---
 
-#### 2.4: Add debug instrumentation
+#### 2.4: Add debug instrumentation ✅
 
-**Status: PENDING**
+**Status: COMPLETE**
+
+**DebugPanel now shows TTS state when NEXT_PUBLIC_DEBUG=true:**
+- voiceEnabled
+- audioContextState (running/suspended)
+- lastHttpStatus, lastBytes
+- lastPlayError
+- lastAudioEnded
+- Real-time amplitude bar
 
 ---
 
 #### 2.5: Production verification
 
-**Status: PENDING**
+**Status: IN PROGRESS**
 
 ---
 

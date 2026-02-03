@@ -1,7 +1,7 @@
 # Pipeline State Checkpoint
 
-**Last Updated:** 2026-02-03 03:15 UTC
-**Current Task:** Web Deploy Task 1 - COMPLETE
+**Last Updated:** 2026-02-03 09:15 UTC
+**Current Task:** TTS Audio Fix - Task 1 Complete
 
 ---
 
@@ -1160,9 +1160,250 @@ npm run build       # Pass (330kB first load)
 
 ---
 
-## Next Step
+## TTS Integration (ElevenLabs) ✅
 
-**Task 2: Deploy to Vercel (git push + env vars)**
+**Status: COMPLETE**
+
+**Date:** 2026-02-03
+
+### TTS-1: ElevenLabs API Key Setup ✅
+
+**Status: COMPLETE**
+
+**Configuration:**
+- Voice: Calen Voss
+- Voice ID: `S44KQ3oLFckbxgyKfold`
+- Model: `eleven_monolingual_v1`
+
+**Fly Secrets Set:**
+- `ELEVENLABS_API_KEY` (encrypted)
+- `ELEVENLABS_VOICE_ID`
+- `ELEVENLABS_MODEL_ID`
+
+**API Key Permissions:**
+- Text to Speech: Full Access
+- Voices: Read
+- All others: No Access
+- Monthly limit: 10,000 characters
+
+---
+
+### TTS-2: Backend /api/tts Endpoint ✅
+
+**Status: COMPLETE**
+
+**Files created:**
+- `api/services/tts.py` - ElevenLabs TTS client with sanitization
+- `api/config.py` - Added TTS settings (model_id, output_format, rate limits)
+
+**Endpoint:** `POST /api/tts`
+- Input: `{"text": "..."}`
+- Output: `audio/mpeg`
+- Rate limit: 10 requests/minute per IP
+- Max text: 1000 characters
+- Sanitizes emojis and hashtags before TTS
+
+**Verification:**
+```bash
+curl -X POST https://jeffreyaistein.fly.dev/api/tts \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Hello world"}' -o test.mp3
+# HTTP 200, 31KB audio
+```
+
+---
+
+### TTS-3: Frontend Audio Playback ✅
+
+**Status: COMPLETE**
+
+**Files created/modified:**
+- `web/src/hooks/useTTS.ts` - TTS hook with voice toggle, fetch audio, play via WebAudio
+- `web/src/components/ChatInterface.tsx` - VoiceToggle button, TTS integration, passes audioElement
+
+**Features:**
+- Voice toggle button (Off by default, user must enable to satisfy autoplay policies)
+- Calls POST /api/tts when assistant message completes
+- Plays audio via HTML5 Audio element
+- Passes audioElement to useAvatarDriver for real amplitude analysis
+- Error indicator when TTS fails
+- Loading state during TTS fetch
+
+---
+
+### TTS-4: Documentation ✅
+
+**Status: COMPLETE**
+
+**File created:**
+- `web/docs/TTS_SETUP.md` - Complete TTS setup guide including:
+  - ElevenLabs API key creation
+  - Voice selection guidance
+  - Fly.io secrets configuration
+  - Frontend usage
+  - Configuration reference
+  - Troubleshooting guide
+
+---
+
+## Projected Face Alignment Fix ✅
+
+**Status: COMPLETE**
+
+**Date:** 2026-02-03
+
+**Problem:** Face texture was drifting/sliding when the avatar floated or rotated because the projection used clip space (view-dependent) coordinates.
+
+**Solution:** Switch to object space UV mapping so the face stays locked to the mesh geometry.
+
+### Changes Made
+
+**Shader rewrite:**
+- Changed from `vProjectedPos` (clip space) to `vObjPos` (object space position)
+- UV now derived from `vObjPos.xy` - the local X/Y coordinates of each vertex
+- Face texture is "painted" onto mesh in local space, moves with the mesh
+
+**New calibration controls:**
+- `faceScale` - Scale factor for face mapping (higher = smaller face)
+- `faceOffsetX` - Horizontal offset
+- `faceOffsetY` - Vertical offset
+- `flipX` - Toggle horizontal flip (0 or 1)
+- `flipY` - Toggle vertical flip (0 or 1)
+
+**Front-facing fade:**
+- Uses `vObjNormal.z` (object space normal) for consistent fade
+- `frontFadeStrength` controls how quickly face fades on sides/back
+
+**Debug controls (when NEXT_PUBLIC_AVATAR_DEBUG=true):**
+- Keys 1-9: Select parameter
+- Arrow keys: Adjust value
+- Shift: Fine adjustment (0.01)
+- F: Toggle flip for flipX/flipY
+- R: Reset to defaults
+
+**Default values:**
+```typescript
+const DEFAULT_SETTINGS = {
+  faceScale: 1.0,
+  faceOffsetX: 0.0,
+  faceOffsetY: 0.0,
+  flipX: 0.0,
+  flipY: 0.0,
+  frontFadeStrength: 2.0,
+  mouthIntensity: 1.5,
+  scanlineIntensity: 0.0,
+  noiseIntensity: 0.0,
+}
+```
+
+**File modified:**
+- `web/src/components/HologramProjectedFace.tsx`
+
+**Commit:** f63791f
+
+**Deployed:** Pushed to main, Vercel auto-deploying
+
+---
+
+## TTS Audio Playback Fix - IN PROGRESS
+
+**Date:** 2026-02-03
+
+**Goal:** Fix ElevenLabs TTS playback end-to-end.
+
+### Task 1: Backend TTS Verification ✅
+
+**Status: COMPLETE**
+
+**Findings:**
+- Fly secrets configured: ELEVENLABS_API_KEY ✅, ELEVENLABS_VOICE_ID ✅, CORS_ORIGINS ✅
+- `/api/tts/status` returns: `{"configured":true,"enabled":true,"provider":"elevenlabs","voice_id_set":true,"api_key_set":true}`
+- Backend TTS works: 200 OK, audio/mpeg, 25KB audio
+
+**Test commands:**
+```bash
+# Check TTS status
+curl -s https://jeffreyaistein.fly.dev/api/tts/status
+
+# Test TTS endpoint (saves MP3)
+curl -s -X POST https://jeffreyaistein.fly.dev/api/tts \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Hello, I am Jeffrey AIstein."}' \
+  -o test.mp3 -w "HTTP: %{http_code}, Type: %{content_type}, Size: %{size_download}\n"
+
+# Expected output:
+# HTTP: 200, Type: audio/mpeg, Size: ~25000
+```
+
+**CORS verified:**
+```bash
+# Preflight test
+curl -I -X OPTIONS https://jeffreyaistein.fly.dev/api/tts \
+  -H "Origin: https://jeffreyaistein.vercel.app" \
+  -H "Access-Control-Request-Method: POST"
+
+# Response includes:
+# access-control-allow-origin: https://jeffreyaistein.vercel.app
+# access-control-allow-methods: DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT
+```
+
+**Enhancements added:**
+- Added TTS config logging at startup (`elevenlabs_configured=true/false`)
+- Improved error logging in tts.py (truncated ElevenLabs error bodies)
+
+**Conclusion:** Backend is working. Issue is in frontend audio playback.
+
+---
+
+### Task 2: Frontend Audio Playback - IN PROGRESS
+
+#### 2.1: Enable Voice user-gesture gate ✅
+
+**Status: COMPLETE**
+
+**Changes to `web/src/hooks/useTTS.ts`:**
+- Added localStorage persistence for voice preference (`tts_voice_enabled` key)
+- Added AudioContext creation/resume on voice enable (critical for iOS/Safari)
+- Voice requires user click to enable (satisfies browser autoplay policies)
+- Added `audioContextState` to return for debug
+
+**Key implementation:**
+```typescript
+// On enable:
+const AudioContextClass = window.AudioContext || window.webkitAudioContext
+audioContextRef.current = new AudioContextClass()
+await audioContextRef.current.resume()  // Unlocks audio on iOS
+saveVoiceEnabled(true)  // Persist to localStorage
+```
+
+**Browser autoplay policy satisfied:**
+- User must click "Voice Off" button to enable
+- Click triggers AudioContext.resume() (user gesture required)
+- localStorage remembers preference but still requires re-click after refresh
+
+---
+
+#### 2.2: Play ElevenLabs audio after messages
+
+**Status: PENDING**
+
+---
+
+#### 2.3: Drive hologram amplitude from real audio
+
+**Status: PENDING**
+
+---
+
+#### 2.4: Add debug instrumentation
+
+**Status: PENDING**
+
+---
+
+#### 2.5: Production verification
+
+**Status: PENDING**
 
 ---
 

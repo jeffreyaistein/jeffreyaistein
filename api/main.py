@@ -105,6 +105,18 @@ async def lifespan(app: FastAPI):
     print("AIstein API starting up...")
     logger.info("api_startup")
 
+    # Log TTS configuration status
+    from services.tts import is_tts_configured
+    tts_configured = is_tts_configured()
+    logger.info(
+        "tts_config_status",
+        elevenlabs_configured=tts_configured,
+        api_key_set=bool(settings.elevenlabs_api_key),
+        voice_id_set=bool(settings.elevenlabs_voice_id),
+        enabled=settings.enable_tts,
+    )
+    print(f"TTS: elevenlabs_configured={tts_configured}")
+
     # Start SelfStyleWorker if enabled (independent of X bot)
     # Worker handles its own gating (SELF_STYLE_ENABLED, Redis availability)
     _self_style_worker = SelfStyleWorker()
@@ -815,6 +827,114 @@ async def get_agent_stats():
         "learning_score": 0,
         "semantic_memories_count": 0,
         "updated_at": None,
+    }
+
+
+# ===========================================
+# Text-to-Speech
+# ===========================================
+
+
+class TTSRequest(BaseModel):
+    """TTS request body."""
+    text: str
+
+
+# Simple in-memory rate limiting for TTS
+_tts_request_times: dict[str, list[float]] = {}
+
+
+def _check_tts_rate_limit(client_ip: str) -> bool:
+    """Check if client is within rate limit. Returns True if allowed."""
+    import time
+    now = time.time()
+    window = 60.0  # 1 minute window
+
+    if client_ip not in _tts_request_times:
+        _tts_request_times[client_ip] = []
+
+    # Clean old entries
+    _tts_request_times[client_ip] = [
+        t for t in _tts_request_times[client_ip]
+        if now - t < window
+    ]
+
+    # Check limit
+    if len(_tts_request_times[client_ip]) >= settings.tts_rate_limit_per_minute:
+        return False
+
+    # Record this request
+    _tts_request_times[client_ip].append(now)
+    return True
+
+
+@app.post("/api/tts")
+async def text_to_speech(request: Request, body: TTSRequest):
+    """
+    Convert text to speech using ElevenLabs.
+
+    Returns audio/mpeg stream.
+
+    Rate limited to prevent abuse.
+    """
+    from services.tts import get_tts_client, is_tts_configured, TTSError
+
+    # Check if TTS is configured
+    if not is_tts_configured():
+        raise HTTPException(status_code=503, detail="TTS not configured")
+
+    # Get client IP for rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Check rate limit
+    if not _check_tts_rate_limit(client_ip):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limited. Max {settings.tts_rate_limit_per_minute} requests per minute."
+        )
+
+    # Validate text
+    if not body.text or not body.text.strip():
+        raise HTTPException(status_code=400, detail="Text is required")
+
+    if len(body.text) > settings.tts_max_text_length:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Text too long. Max {settings.tts_max_text_length} characters."
+        )
+
+    try:
+        tts_client = get_tts_client()
+        audio_bytes = await tts_client.synthesize(body.text)
+
+        return Response(
+            content=audio_bytes,
+            media_type="audio/mpeg",
+            headers={
+                "Content-Disposition": "inline; filename=speech.mp3",
+                "Cache-Control": "no-cache",
+            },
+        )
+
+    except TTSError as e:
+        logger.error("tts_error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error("tts_unexpected_error", error=str(e))
+        raise HTTPException(status_code=500, detail="TTS generation failed")
+
+
+@app.get("/api/tts/status")
+async def tts_status():
+    """Check TTS configuration status."""
+    from services.tts import is_tts_configured
+
+    return {
+        "configured": is_tts_configured(),
+        "enabled": settings.enable_tts,
+        "provider": settings.tts_provider,
+        "voice_id_set": bool(settings.elevenlabs_voice_id),
+        "api_key_set": bool(settings.elevenlabs_api_key),
     }
 
 

@@ -59,12 +59,24 @@ function computeUrls(baseUrl: string | undefined) {
   }
 }
 
+// TTS debug info interface (matches useTTS debugInfo)
+interface TTSDebugInfo {
+  voiceEnabled: boolean
+  audioContextState: AudioContextState | 'unavailable'
+  lastHttpStatus: number | null
+  lastBytes: number | null
+  lastPlayError: string | null
+  lastAudioEnded: boolean
+  amplitude: number
+}
+
 interface DebugPanelProps {
   connectionStatus?: string
   lastError?: string | null
+  ttsDebugInfo?: TTSDebugInfo
 }
 
-export function DebugPanel({ connectionStatus, lastError }: DebugPanelProps) {
+export function DebugPanel({ connectionStatus, lastError, ttsDebugInfo }: DebugPanelProps) {
   const [isExpanded, setIsExpanded] = useState(true)
 
   // Compute URLs
@@ -89,6 +101,21 @@ export function DebugPanel({ connectionStatus, lastError }: DebugPanelProps) {
     }
     console.log('==========================')
   }, [computed.restUrl, computed.wsUrl, computed.error, urlSource])
+
+  // Log TTS debug info when it changes
+  useEffect(() => {
+    if (!DEBUG_ENABLED || !ttsDebugInfo) return
+
+    console.log('[TTS Debug]', {
+      voiceEnabled: ttsDebugInfo.voiceEnabled,
+      audioContextState: ttsDebugInfo.audioContextState,
+      lastHttpStatus: ttsDebugInfo.lastHttpStatus,
+      lastBytes: ttsDebugInfo.lastBytes,
+      lastPlayError: ttsDebugInfo.lastPlayError,
+      lastAudioEnded: ttsDebugInfo.lastAudioEnded,
+      amplitude: ttsDebugInfo.amplitude.toFixed(3),
+    })
+  }, [ttsDebugInfo])
 
   // Don't render if debug not enabled
   if (!DEBUG_ENABLED) {
@@ -207,6 +234,64 @@ export function DebugPanel({ connectionStatus, lastError }: DebugPanelProps) {
                 )}
               </div>
             </div>
+
+            {/* TTS Debug Info */}
+            {ttsDebugInfo && (
+              <div className="space-y-1 border-t border-gray-700 pt-2">
+                <div className="text-gray-400 uppercase text-[10px]">TTS State</div>
+                <div className="pl-2 space-y-1">
+                  <div>
+                    <span className="text-gray-500">voiceEnabled: </span>
+                    <span className={ttsDebugInfo.voiceEnabled ? 'text-matrix-green' : 'text-gray-400'}>
+                      {ttsDebugInfo.voiceEnabled ? 'true' : 'false'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">audioContextState: </span>
+                    <span className={ttsDebugInfo.audioContextState === 'running' ? 'text-matrix-green' : 'text-yellow-400'}>
+                      {ttsDebugInfo.audioContextState}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">lastHttpStatus: </span>
+                    <span className={ttsDebugInfo.lastHttpStatus === 200 ? 'text-matrix-green' : ttsDebugInfo.lastHttpStatus ? 'text-red-400' : 'text-gray-400'}>
+                      {ttsDebugInfo.lastHttpStatus ?? '(none)'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">lastBytes: </span>
+                    <span className={ttsDebugInfo.lastBytes && ttsDebugInfo.lastBytes > 0 ? 'text-matrix-green' : 'text-gray-400'}>
+                      {ttsDebugInfo.lastBytes ?? '(none)'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">lastPlayError: </span>
+                    <span className={ttsDebugInfo.lastPlayError ? 'text-red-400' : 'text-gray-400'}>
+                      {ttsDebugInfo.lastPlayError ?? '(none)'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">lastAudioEnded: </span>
+                    <span className={ttsDebugInfo.lastAudioEnded ? 'text-matrix-green' : 'text-gray-400'}>
+                      {ttsDebugInfo.lastAudioEnded ? 'true' : 'false'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">amplitude: </span>
+                    <span className="text-matrix-cyan">
+                      {ttsDebugInfo.amplitude.toFixed(3)}
+                    </span>
+                    {/* Visual amplitude bar */}
+                    <div className="mt-1 h-1 bg-gray-700 rounded overflow-hidden">
+                      <div
+                        className="h-full bg-matrix-cyan transition-all duration-75"
+                        style={{ width: `${Math.min(100, ttsDebugInfo.amplitude * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Warnings */}
             {(!RAW_API_BASE_URL && (RAW_API_URL || RAW_WS_URL)) && (

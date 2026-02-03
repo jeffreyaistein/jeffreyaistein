@@ -157,6 +157,7 @@ function ChatSection({
   voiceLoading,
   onVoiceToggle,
   ttsError,
+  ttsDebugInfo,
 }: {
   messages: Array<{
     id: string
@@ -175,6 +176,15 @@ function ChatSection({
   voiceLoading: boolean
   onVoiceToggle: () => void
   ttsError: string | null
+  ttsDebugInfo?: {
+    voiceEnabled: boolean
+    audioContextState: AudioContextState | 'unavailable'
+    lastHttpStatus: number | null
+    lastBytes: number | null
+    lastPlayError: string | null
+    lastAudioEnded: boolean
+    amplitude: number
+  }
 }) {
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -225,7 +235,7 @@ function ChatSection({
 
       <div className="flex flex-col h-[400px]">
         {/* Debug panel - only shows when NEXT_PUBLIC_DEBUG=true */}
-        <DebugPanel connectionStatus={connectionStatus} lastError={error} />
+        <DebugPanel connectionStatus={connectionStatus} lastError={error} ttsDebugInfo={ttsDebugInfo} />
 
         {/* Error banner */}
         {error && (
@@ -372,6 +382,7 @@ export function ChatInterface() {
     isLoading: ttsLoading,
     error: ttsError,
     amplitude: ttsAmplitude,
+    debugInfo: ttsDebugInfo,
     speak,
   } = useTTS({
     onError: (err) => console.error('TTS error:', err),
@@ -423,6 +434,7 @@ export function ChatInterface() {
         voiceLoading={ttsLoading}
         onVoiceToggle={toggleVoice}
         ttsError={ttsError}
+        ttsDebugInfo={ttsDebugInfo}
       />
     </div>
   )

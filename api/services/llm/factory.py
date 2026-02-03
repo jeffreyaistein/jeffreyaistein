@@ -10,6 +10,7 @@ import structlog
 from config import settings
 from services.llm.base import BaseLLMProvider
 from services.llm.anthropic_provider import AnthropicProvider
+from services.llm.openrouter_provider import OpenRouterProvider
 from services.llm.mock_provider import MockProvider
 
 
@@ -25,8 +26,9 @@ def get_llm_provider(force_mock: bool = False) -> BaseLLMProvider:
 
     Provider selection priority:
     1. If force_mock=True, return MockProvider
-    2. If ANTHROPIC_API_KEY is set, return AnthropicProvider
-    3. Otherwise, return MockProvider (fallback)
+    2. If LLM_PROVIDER=openrouter and OPENROUTER_API_KEY is set, return OpenRouterProvider
+    3. If ANTHROPIC_API_KEY is set, return AnthropicProvider
+    4. Otherwise, return MockProvider (fallback)
 
     The provider is cached as a singleton for efficiency.
 
@@ -47,6 +49,16 @@ def get_llm_provider(force_mock: bool = False) -> BaseLLMProvider:
     if _provider_instance is not None:
         return _provider_instance
 
+    # Check for OpenRouter (preferred for unfiltered models)
+    if settings.llm_provider == "openrouter" and settings.openrouter_api_key:
+        _provider_instance = OpenRouterProvider()
+        logger.info(
+            "llm_provider_selected",
+            provider="openrouter",
+            model=_provider_instance.get_model_name(),
+        )
+        return _provider_instance
+
     # Check for Anthropic API key
     if settings.anthropic_api_key:
         _provider_instance = AnthropicProvider()
@@ -62,7 +74,7 @@ def get_llm_provider(force_mock: bool = False) -> BaseLLMProvider:
         "llm_provider_fallback",
         provider="mock",
         reason="no_api_key",
-        hint="Set ANTHROPIC_API_KEY for real LLM responses",
+        hint="Set OPENROUTER_API_KEY or ANTHROPIC_API_KEY for real LLM responses",
     )
     _provider_instance = MockProvider()
     return _provider_instance

@@ -24,8 +24,10 @@ class Settings(BaseSettings):
     # LLM Providers
     anthropic_api_key: str = ""
     openai_api_key: str = ""
-    llm_provider: str = "anthropic"
-    llm_model: str = "claude-3-5-sonnet-20241022"
+    openrouter_api_key: str = ""
+    llm_provider: str = "openrouter"  # "anthropic" or "openrouter"
+    llm_model: str = "mistralai/mistral-nemo"  # OpenRouter model ID
+    openrouter_model: str = "mistralai/mistral-nemo"
     embedding_provider: str = "openai"
     embedding_model: str = "text-embedding-ada-002"
 
@@ -51,7 +53,7 @@ class Settings(BaseSettings):
     x_bot_user_id: str = ""
     x_bot_enabled: bool = False
     safe_mode: bool = False
-    approval_required: bool = True
+    approval_required: bool = False
     x_hourly_post_limit: int = 5
     x_daily_post_limit: int = 20
 

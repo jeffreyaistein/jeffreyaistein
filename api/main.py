@@ -54,6 +54,12 @@ from services.persona.style_rewriter import (
     _validate_hard_constraints,
 )
 from services.persona.kol_profiles import get_kol_loader
+from services.persona.blender import (
+    get_blend_settings,
+    get_persona_status as get_blender_status,
+    build_and_save_persona,
+    get_compiled_persona,
+)
 
 logger = structlog.get_logger()
 
@@ -1408,7 +1414,7 @@ async def admin_get_persona_status(request: Request):
     """
     Get persona system status (admin only).
 
-    Returns status of style guide, KOL profiles, and brand rules enforcement.
+    Returns status of style guide, KOL profiles, blend settings, and brand rules enforcement.
     """
     await verify_admin_key(request)
 
@@ -1422,6 +1428,9 @@ async def admin_get_persona_status(request: Request):
     kol_profiles_loaded_count = kol_loader.profile_count
     kol_profiles_generated_at = kol_loader.get_generated_at() if kol_loader.is_available() else None
 
+    # Get blend status
+    blend_status = get_blender_status()
+
     return {
         "style_guide_loaded": style_guide_loaded,
         "style_guide_generated_at": style_guide_generated_at,
@@ -1430,6 +1439,97 @@ async def admin_get_persona_status(request: Request):
         "brand_rules_enforced": True,
         "no_emojis": True,
         "no_hashtags": True,
+        # Blend settings
+        "snark_level": blend_status.get("snark_level", 2),
+        "epstein_persona_blend": blend_status.get("epstein_persona_blend", False),
+        "blend_weights": blend_status.get("weights", {}),
+        "compiled_at": blend_status.get("compiled_at"),
+        "blend_components_loaded": blend_status.get("components_loaded", {}),
+    }
+
+
+@app.post("/api/admin/persona/rebuild")
+async def admin_rebuild_persona(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Rebuild compiled persona from components (admin only).
+
+    This regenerates:
+    - services/persona/epstein_tone.json (from DB summaries)
+    - services/persona/compiled_persona.json
+    - services/persona/compiled_persona_prompt.md
+    """
+    await verify_admin_key(request)
+
+    from services.corpus.epstein.tone_builder import build_and_save_tone, validate_tone_safety
+
+    # Build tone from DB
+    tone_json = await build_and_save_tone(db)
+
+    # Validate tone safety
+    is_safe, violations = validate_tone_safety(tone_json)
+    if not is_safe:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "Tone validation failed",
+                "violations": violations,
+            }
+        )
+
+    # Build compiled persona
+    compiled_json, compiled_prompt = build_and_save_persona()
+
+    return {
+        "success": True,
+        "tone_generated": True,
+        "tone_doc_count": tone_json.get("metadata", {}).get("source_document_count", 0),
+        "persona_compiled": True,
+        "compiled_at": compiled_json.get("generated_at"),
+        "epstein_persona_blend": compiled_json.get("settings", {}).get("epstein_persona_blend", False),
+        "snark_level": compiled_json.get("settings", {}).get("snark_level", 2),
+    }
+
+
+@app.patch("/api/admin/persona/settings")
+async def admin_update_persona_settings(request: Request):
+    """
+    Update persona blend settings (admin only).
+
+    Supports:
+    - epstein_persona_blend: true/false (toggle casefile parody cadence)
+    - snark_level: 0-5 (default 2)
+
+    Note: EPSTEIN_MODE is always false (no retrieval).
+    EPSTEIN_PERSONA_BLEND only affects tone/cadence, not content.
+    """
+    await verify_admin_key(request)
+
+    body = await request.json()
+
+    updated = {}
+
+    # Update EPSTEIN_PERSONA_BLEND
+    if "epstein_persona_blend" in body:
+        new_value = str(body["epstein_persona_blend"]).lower() == "true"
+        os.environ["EPSTEIN_PERSONA_BLEND"] = str(new_value).lower()
+        updated["epstein_persona_blend"] = new_value
+
+    # Update SNARK_LEVEL
+    if "snark_level" in body:
+        new_level = int(body["snark_level"])
+        new_level = max(0, min(5, new_level))  # Clamp to 0-5
+        os.environ["SNARK_LEVEL"] = str(new_level)
+        updated["snark_level"] = new_level
+
+    # Rebuild persona with new settings
+    if updated:
+        compiled_json, _ = build_and_save_persona()
+        updated["compiled_at"] = compiled_json.get("generated_at")
+
+    return {
+        "success": True,
+        "updated": updated,
+        "note": "Settings updated in environment. Restart not required.",
     }
 
 
@@ -2136,6 +2236,144 @@ async def admin_generate_style_proposal(
         "is_active": False,  # NEVER auto-activated
         "message": "Proposal generated - requires admin activation via /activate endpoint",
     }
+
+
+# =============================================================================
+# Epstein Corpus Admin Endpoints
+# =============================================================================
+
+
+@app.get("/api/admin/corpus/epstein/status")
+async def admin_corpus_epstein_status(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get Epstein corpus ingestion status (admin only).
+
+    Returns document counts, last ingestion info, and EPSTEIN_MODE status.
+    """
+    await verify_admin_key(request)
+
+    from services.corpus.epstein.ingest import get_corpus_status
+
+    status = await get_corpus_status(db)
+
+    # Get EPSTEIN_MODE setting
+    epstein_mode = await get_runtime_setting("epstein_mode", "EPSTEIN_MODE", "false")
+
+    return {
+        **status,
+        "epstein_mode": epstein_mode,
+        "epstein_persona_blend": await get_runtime_setting("epstein_persona_blend", "EPSTEIN_PERSONA_BLEND", "false"),
+    }
+
+
+@app.get("/api/admin/corpus/epstein/samples")
+async def admin_corpus_epstein_samples(
+    request: Request,
+    limit: int = 20,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get sample sanitized summaries for admin review (admin only).
+
+    Returns only sanitized_summary and basic metadata.
+    Never returns raw text or blocked content.
+    """
+    await verify_admin_key(request)
+
+    if limit < 1 or limit > 100:
+        limit = 20
+
+    from services.corpus.epstein.ingest import get_corpus_samples
+
+    samples = await get_corpus_samples(db, limit=limit)
+
+    return {
+        "samples": samples,
+        "count": len(samples),
+        "note": "Review these samples before enabling EPSTEIN_MODE",
+    }
+
+
+@app.post("/api/admin/corpus/epstein/enable")
+async def admin_corpus_epstein_enable(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Enable EPSTEIN_MODE after admin review (admin only).
+
+    This enables:
+    - search_knowledge() with source="epstein"
+    - Casefile tone blending in persona (if EPSTEIN_PERSONA_BLEND also enabled)
+
+    WARNING: Only enable after reviewing samples via /samples endpoint.
+    """
+    await verify_admin_key(request)
+
+    # Set EPSTEIN_MODE=true in runtime settings
+    await set_runtime_setting(db, "epstein_mode", True)
+
+    logger.warning(
+        "epstein_mode_enabled",
+        admin_action=True,
+    )
+
+    return {
+        "enabled": True,
+        "epstein_mode": True,
+        "message": "EPSTEIN_MODE enabled. Knowledge retrieval now active.",
+    }
+
+
+@app.post("/api/admin/corpus/epstein/disable")
+async def admin_corpus_epstein_disable(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Disable EPSTEIN_MODE (admin only).
+
+    This disables:
+    - search_knowledge() with source="epstein"
+    - Casefile tone blending (EPSTEIN_PERSONA_BLEND is also disabled)
+    """
+    await verify_admin_key(request)
+
+    # Disable both settings
+    await set_runtime_setting(db, "epstein_mode", False)
+    await set_runtime_setting(db, "epstein_persona_blend", False)
+
+    logger.warning(
+        "epstein_mode_disabled",
+        admin_action=True,
+    )
+
+    return {
+        "disabled": True,
+        "epstein_mode": False,
+        "epstein_persona_blend": False,
+        "message": "EPSTEIN_MODE disabled. Corpus is now inactive.",
+    }
+
+
+async def set_runtime_setting(db: AsyncSession, key: str, value) -> None:
+    """Set a runtime setting in the database."""
+    import json
+
+    # Check if x_settings table exists and use it
+    query = text("""
+        INSERT INTO x_settings (key, value, updated_at)
+        VALUES (:key, :value, NOW())
+        ON CONFLICT (key) DO UPDATE SET
+            value = :value,
+            updated_at = NOW()
+    """)
+
+    await db.execute(query, {"key": key, "value": json.dumps(value)})
+    await db.commit()
 
 
 if __name__ == "__main__":

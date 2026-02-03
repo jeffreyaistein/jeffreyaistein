@@ -27,21 +27,110 @@ interface UseChatOptions {
   onConversationCreated?: (conversationId: string) => void
 }
 
-// API URLs from environment
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000'
+// Environment variables
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL
+const LEGACY_API_URL = process.env.NEXT_PUBLIC_API_URL
+const LEGACY_WS_URL = process.env.NEXT_PUBLIC_WS_URL
+const DEBUG_ENABLED = process.env.NEXT_PUBLIC_DEBUG === 'true'
+
+// Debug logging helper
+function debugLog(...args: unknown[]) {
+  if (DEBUG_ENABLED) {
+    console.log('[useChat]', ...args)
+  }
+}
+
+/**
+ * Compute REST and WebSocket URLs from a single base URL.
+ * - https://example.com -> REST: https://example.com, WS: wss://example.com
+ * - http://example.com -> REST: http://example.com, WS: ws://example.com
+ */
+function computeUrls(baseUrl: string): { restUrl: string; wsUrl: string } {
+  // Normalize: remove trailing slash
+  const normalized = baseUrl.replace(/\/$/, '')
+
+  let wsUrl: string
+  if (normalized.startsWith('https://')) {
+    wsUrl = normalized.replace('https://', 'wss://')
+  } else if (normalized.startsWith('http://')) {
+    wsUrl = normalized.replace('http://', 'ws://')
+  } else {
+    // Assume https if no scheme (shouldn't happen but be safe)
+    wsUrl = `wss://${normalized}`
+  }
+
+  return { restUrl: normalized, wsUrl }
+}
+
+// Determine the API URLs to use
+function getApiUrls(): { apiUrl: string; wsUrl: string; source: string } {
+  // Priority 1: NEXT_PUBLIC_API_BASE_URL (single source of truth)
+  if (API_BASE_URL) {
+    const computed = computeUrls(API_BASE_URL)
+    return {
+      apiUrl: computed.restUrl,
+      wsUrl: computed.wsUrl,
+      source: 'NEXT_PUBLIC_API_BASE_URL',
+    }
+  }
+
+  // Priority 2: Legacy separate URLs (backwards compatibility)
+  if (LEGACY_API_URL && LEGACY_WS_URL) {
+    return {
+      apiUrl: LEGACY_API_URL.replace(/\/$/, ''),
+      wsUrl: LEGACY_WS_URL.replace(/\/$/, ''),
+      source: 'legacy (NEXT_PUBLIC_API_URL + NEXT_PUBLIC_WS_URL)',
+    }
+  }
+
+  // Priority 3: Fallback to localhost (only in development)
+  // In production, this will cause issues - debug panel will show the error
+  if (DEBUG_ENABLED) {
+    console.error(
+      '[useChat] ERROR: No API URL configured!\n' +
+      'Set NEXT_PUBLIC_API_BASE_URL environment variable.\n' +
+      'Example: NEXT_PUBLIC_API_BASE_URL=https://jeffreyaistein.fly.dev'
+    )
+  }
+
+  return {
+    apiUrl: 'http://localhost:8000',
+    wsUrl: 'ws://localhost:8000',
+    source: 'FALLBACK (localhost) - CONFIGURE NEXT_PUBLIC_API_BASE_URL!',
+  }
+}
+
+// Get URLs once at module load
+const { apiUrl: API_URL, wsUrl: WS_URL, source: URL_SOURCE } = getApiUrls()
+
+// Log URL configuration on load when debug is enabled
+if (DEBUG_ENABLED) {
+  console.log('[useChat] URL configuration:')
+  console.log('  Source:', URL_SOURCE)
+  console.log('  REST URL:', API_URL)
+  console.log('  WebSocket URL:', WS_URL)
+}
 
 // Initialize session with the API
-async function initializeSession(): Promise<boolean> {
+async function initializeSession(): Promise<{ ok: boolean; error?: string }> {
+  const sessionUrl = `${API_URL}/api/session`
+  debugLog('Initializing session at:', sessionUrl)
+
   try {
-    const response = await fetch(`${API_URL}/api/session`, {
+    const response = await fetch(sessionUrl, {
       method: 'POST',
       credentials: 'include',
     })
-    return response.ok
+    debugLog('Session response status:', response.status)
+    if (!response.ok) {
+      return { ok: false, error: `HTTP ${response.status}` }
+    }
+    return { ok: true }
   } catch (error) {
-    console.error('Failed to initialize session:', error)
-    return false
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('Failed to initialize session:', errorMsg)
+    debugLog('Session error details:', errorMsg)
+    return { ok: false, error: errorMsg }
   }
 }
 
@@ -104,14 +193,19 @@ export function useChat(options: UseChatOptions = {}) {
 
     updateState({ connectionStatus: 'connecting', error: null })
 
+    debugLog('API_URL:', API_URL)
+    debugLog('WS_URL:', WS_URL)
+
     // Initialize session first
-    const sessionOk = await initializeSession()
-    if (!sessionOk) {
+    const sessionResult = await initializeSession()
+    if (!sessionResult.ok) {
+      const errorMsg = `Failed to initialize session: ${sessionResult.error || 'unknown'}`
+      debugLog('Session init failed:', errorMsg)
       updateState({
         connectionStatus: 'error',
-        error: 'Failed to initialize session',
+        error: errorMsg,
       })
-      onError?.('Failed to initialize session')
+      onError?.(errorMsg)
       return
     }
 
@@ -120,12 +214,15 @@ export function useChat(options: UseChatOptions = {}) {
       ? `${WS_URL}/ws/chat?conversation_id=${state.conversationId}`
       : `${WS_URL}/ws/chat`
 
+    debugLog('Attempting WebSocket connection to:', wsUrl)
+
     try {
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
       ws.onopen = () => {
         console.log('WebSocket connected')
+        debugLog('WebSocket connected successfully')
         reconnectAttempts.current = 0
       }
 
@@ -140,11 +237,13 @@ export function useChat(options: UseChatOptions = {}) {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error)
+        debugLog('WebSocket error event:', error)
         updateState({ error: 'Connection error' })
       }
 
       ws.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason)
+        debugLog('WebSocket closed - code:', event.code, 'reason:', event.reason, 'wasClean:', event.wasClean)
         updateState({ connectionStatus: 'disconnected' })
 
         // Attempt reconnection if not a clean close
@@ -157,10 +256,12 @@ export function useChat(options: UseChatOptions = {}) {
         }
       }
     } catch (error) {
-      console.error('Failed to create WebSocket:', error)
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      console.error('Failed to create WebSocket:', errorMsg)
+      debugLog('WebSocket creation error:', errorMsg)
       updateState({
         connectionStatus: 'error',
-        error: 'Failed to connect',
+        error: `Failed to connect: ${errorMsg}`,
       })
     }
   }, [state.conversationId, updateState, onError])

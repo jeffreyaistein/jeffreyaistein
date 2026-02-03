@@ -2,22 +2,43 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useChat, type ConnectionStatus } from '@/hooks/useChat'
+import { DebugPanel } from '@/components/DebugPanel'
 
 // Connection status indicator component
-function ConnectionIndicator({ status }: { status: ConnectionStatus }) {
+function ConnectionIndicator({
+  status,
+  error,
+  onReconnect,
+}: {
+  status: ConnectionStatus
+  error?: string | null
+  onReconnect?: () => void
+}) {
   const statusConfig = {
-    connecting: { color: 'bg-yellow-500', text: 'Connecting...' },
-    connected: { color: 'bg-matrix-green', text: 'Connected' },
-    disconnected: { color: 'bg-gray-500', text: 'Disconnected' },
-    error: { color: 'bg-red-500', text: 'Error' },
+    connecting: { color: 'bg-yellow-500', textColor: 'text-yellow-400', text: 'Connecting...' },
+    connected: { color: 'bg-matrix-green', textColor: 'text-matrix-green', text: 'Connected' },
+    disconnected: { color: 'bg-gray-500', textColor: 'text-gray-400', text: 'Disconnected' },
+    error: { color: 'bg-red-500', textColor: 'text-red-400', text: 'Connection Error' },
   }
 
   const config = statusConfig[status]
+  const isDisconnected = status === 'disconnected' || status === 'error'
 
   return (
-    <div className="flex items-center gap-2 text-xs opacity-50">
+    <div className="flex items-center gap-2 text-xs">
       <div className={`w-2 h-2 rounded-full ${config.color} ${status === 'connecting' ? 'animate-pulse' : ''}`} />
-      <span>{config.text}</span>
+      <span className={config.textColor}>
+        {config.text}
+        {error && isDisconnected && `: ${error}`}
+      </span>
+      {isDisconnected && onReconnect && (
+        <button
+          onClick={onReconnect}
+          className="text-matrix-cyan hover:underline ml-2"
+        >
+          Reconnect
+        </button>
+      )}
     </div>
   )
 }
@@ -46,7 +67,11 @@ export function ChatBox() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isTyping])
 
-  // Focus input when connected
+  // Focus input on mount and when connected
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
   useEffect(() => {
     if (connectionStatus === 'connected') {
       inputRef.current?.focus()
@@ -81,6 +106,9 @@ export function ChatBox() {
 
   return (
     <div className="flex flex-col h-[400px]">
+      {/* Debug panel - only shows when NEXT_PUBLIC_DEBUG=true */}
+      <DebugPanel connectionStatus={connectionStatus} lastError={error} />
+
       {/* Error banner */}
       {error && (
         <div className="px-4 py-2 bg-red-900/50 border-b border-red-500/50 text-red-300 text-sm flex justify-between items-center">
@@ -154,20 +182,25 @@ export function ChatBox() {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder={connectionStatus === 'connected' ? 'Enter message...' : 'Waiting for connection...'}
+            placeholder="Enter message..."
             className="matrix-input flex-1"
-            disabled={connectionStatus !== 'connected' || isTyping}
+            disabled={isTyping}
           />
           <button
             type="submit"
             disabled={!input.trim() || connectionStatus !== 'connected' || isTyping}
             className="matrix-button px-6"
+            title={connectionStatus !== 'connected' ? 'Cannot send while disconnected' : undefined}
           >
             SEND
           </button>
         </div>
         <div className="mt-2 flex items-center justify-between">
-          <ConnectionIndicator status={connectionStatus} />
+          <ConnectionIndicator
+            status={connectionStatus}
+            error={error}
+            onReconnect={handleReconnect}
+          />
           {conversationId && (
             <span className="text-xs opacity-30 font-mono">
               {conversationId.slice(0, 8)}...

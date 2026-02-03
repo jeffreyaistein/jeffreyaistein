@@ -20,6 +20,17 @@ from services.persona.kol_profiles import (
     get_kol_context,
     reset_kol_loader,
 )
+from services.persona.blender import (
+    BlendSettings,
+    BlendWeights,
+    get_blend_settings,
+    compile_persona,
+    generate_compiled_prompt,
+    build_and_save_persona,
+    get_compiled_persona,
+    get_compiled_prompt,
+    get_persona_status,
+)
 
 __all__ = [
     "PersonaConfig",
@@ -36,4 +47,14 @@ __all__ = [
     "get_kol_loader",
     "get_kol_context",
     "reset_kol_loader",
+    # Blender
+    "BlendSettings",
+    "BlendWeights",
+    "get_blend_settings",
+    "compile_persona",
+    "generate_compiled_prompt",
+    "build_and_save_persona",
+    "get_compiled_persona",
+    "get_compiled_prompt",
+    "get_persona_status",
 ]

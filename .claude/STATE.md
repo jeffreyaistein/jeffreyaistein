@@ -1,7 +1,7 @@
 # Pipeline State Checkpoint
 
-**Last Updated:** 2026-02-03 01:55 UTC
-**Current Task:** B5 - VERIFIED IN PRODUCTION
+**Last Updated:** 2026-02-03 03:15 UTC
+**Current Task:** Web Deploy Task 1 - COMPLETE
 
 ---
 
@@ -821,14 +821,375 @@ All B5 subtasks verified in production:
 
 ---
 
-## Next Step
+## Workstream B6: Self Style Update Job
 
-**B6** (when ready)
+### B6.1: Build self-style corpus script ✅
+
+**Status: COMPLETE**
+
+**Actions taken:**
+
+1. **Created `scripts/build_self_style_corpus.py`**
+   - Exports AIstein's outbound tweets to JSONL corpus
+   - Filters:
+     - Only posted tweets (status='posted')
+     - Only tweets with X tweet_id (actually posted)
+     - Excludes tweets with x_risk_flag memories
+     - Configurable date range (--days)
+     - Configurable limit (--limit)
+   - Deduplication by text hash
+   - Output format: JSONL with text, tweet_id, post_type, posted_at, source
+
+**Script features:**
+```
+Usage: python scripts/build_self_style_corpus.py [--days 30] [--limit 500] [--output data/self_style_tweets.jsonl]
+
+Options:
+  --days N              Only include tweets from last N days (0 = no limit)
+  --limit N             Maximum tweets to export (default: 500)
+  --output PATH         Output JSONL file path
+  --no-replies          Exclude reply tweets
+  --include-risk-flagged  Include risk-flagged tweets
+```
+
+**Output JSONL format:**
+```json
+{"text": "...", "tweet_id": "...", "post_type": "reply|timeline", "posted_at": "...", "source": "aistein"}
+```
+
+**Files created:**
+- `apps/api/scripts/build_self_style_corpus.py` (new)
 
 ---
+
+## Web Chat Production Fix ✅
+
+**Status: COMPLETE**
+
+**Problem:** Web chat on Vercel showing "Failed to initialize session" and iOS prompting for local network access.
+
+**Root cause:** Frontend was falling back to `localhost:8000` because environment variables weren't properly configured.
+
+**Tasks completed:**
+1. ~~Add debug overlay~~ ✅
+2. ~~Fix endpoint construction~~ ✅
+3. ~~Make chat input usable when disconnected~~ ✅
+4. ~~Create debug documentation~~ ✅
+
+**Files created/modified:**
+- `apps/web/src/components/DebugPanel.tsx` (new) - Debug overlay showing URLs and connection state
+- `apps/web/src/hooks/useChat.ts` (modified) - Fixed URL computation, added debug logging
+- `apps/web/src/components/ChatBox.tsx` (modified) - Added DebugPanel, improved disconnected UX
+- `apps/web/docs/WEB_CHAT_PROD_DEBUG.md` (new) - Debug instructions
+
+**Key changes:**
+1. **Single source of truth:** `NEXT_PUBLIC_API_BASE_URL` is now the only env var needed
+2. **Correct WS scheme:** `https://` → `wss://`, `http://` → `ws://`
+3. **Debug panel:** Shows all URLs and connection state when `NEXT_PUBLIC_DEBUG=true`
+4. **Better UX:** Input always enabled, only SEND button disabled when disconnected
+
+**Required Vercel Environment Variables:**
+```
+NEXT_PUBLIC_API_BASE_URL=https://jeffreyaistein.fly.dev
+NEXT_PUBLIC_DEBUG=true  # For debugging only
+```
+
+**Expected debug panel values:**
+| Field | Expected Value |
+|-------|---------------|
+| NEXT_PUBLIC_API_BASE_URL | `https://jeffreyaistein.fly.dev` |
+| REST Base | `https://jeffreyaistein.fly.dev` |
+| WebSocket Base | `wss://jeffreyaistein.fly.dev` |
+| WS Chat URL | `wss://jeffreyaistein.fly.dev/ws/chat` |
+| Status | `connected` |
+
+**Verification URLs:**
+- Web app: https://jeffreyaistein.vercel.app (or your Vercel domain)
+- API health: https://jeffreyaistein.fly.dev/health
+
+---
+
+## Hologram Avatar Implementation ✅
+
+**Status: COMPLETE - Ready for deployment**
+
+**Assets used:**
+- `apps/web/public/assets/models/aistein/aistein_low.glb` (724KB)
+- `apps/web/public/assets/models/aistein/aistein_mouth_mask.png` (15KB)
+
+**Files created/modified:**
+- `apps/web/src/components/HologramAvatar3D.tsx` (new) - 3D hologram with shaders
+- `apps/web/src/hooks/useAvatarDriver.ts` (new) - Avatar state driver + audio analysis
+- `apps/web/src/components/ChatInterface.tsx` (new) - Combined chat + hologram
+- `apps/web/src/app/page.tsx` (modified) - Uses ChatInterface
+
+**Features implemented:**
+1. **GLB Model Loading** - React Three Fiber with GLTF loader
+2. **Hologram Shader Effects:**
+   - Fresnel edge glow
+   - Scanlines
+   - Noise overlay
+   - Flicker effect
+   - Random glitch displacement
+   - State-based color modulation
+3. **Avatar States:** idle/listening/thinking/speaking
+4. **Mouth Mask Animation** - Driven by amplitude, intensifies during speaking
+5. **Audio Amplitude Analysis** - WebAudio API with RMS computation
+6. **Simulated Speech** - Auto-triggers after assistant message for demo
+7. **Debug Mode** - `NEXT_PUBLIC_AVATAR_DEBUG=true` shows mask overlay + state
+
+**State mapping:**
+| Chat Event | Avatar State |
+|------------|-------------|
+| Connected, no activity | idle |
+| User sent message | listening |
+| Assistant streaming | thinking |
+| TTS playing | speaking |
+
+**Build verification:**
+```
+npm run type-check  # Pass
+npm run build       # Pass (327kB first load)
+```
+
+**Vercel Environment Variables:**
+```
+NEXT_PUBLIC_API_BASE_URL=https://jeffreyaistein.fly.dev
+NEXT_PUBLIC_DEBUG=true              # For chat debug
+NEXT_PUBLIC_AVATAR_DEBUG=true       # For hologram debug (optional)
+```
+
+---
+
+## Web Deploy Task 1: Pre-Deploy Verification ✅
+
+**Status: COMPLETE**
+
+**Contract Address:**
+- `NEXT_PUBLIC_CONTRACT_ADDRESS` env var used in `src/config/brand.ts`
+- ContractSection component displays address with:
+  - Copy-to-clipboard button
+  - Solscan explorer link (`NEXT_PUBLIC_SOLANA_EXPLORER_BASE_URL`)
+- Shows "TBD" when env var not set
+
+**Social Links:**
+- SocialLinks component in header (line 27 of page.tsx)
+- SocialLinks component in footer (line 59 of page.tsx, with labels)
+- X: https://x.com/JeffreyAIstein
+- TikTok: https://www.tiktok.com/@jeffrey.aistein
+
+**Documentation:**
+- Created `apps/web/docs/WEB_DEPLOY.md` with:
+  - All environment variables documented
+  - Vercel deployment instructions
+  - URL computation explanation
+  - Troubleshooting guide
+
+**Required Vercel Environment Variables:**
+```
+NEXT_PUBLIC_API_BASE_URL=https://jeffreyaistein.fly.dev
+NEXT_PUBLIC_CONTRACT_ADDRESS=69WBpgbrydCLSn3zyqAxzgrj2emGHLQJy9VdB1Xpump
+NEXT_PUBLIC_SOLANA_EXPLORER_BASE_URL=https://solscan.io/token
+NEXT_PUBLIC_DEBUG=true (temporary)
+NEXT_PUBLIC_AVATAR_DEBUG=true (temporary)
+```
+
+---
+
+## Next Step
+
+**Task 2: Deploy to Vercel (git push + env vars)**
 
 ---
 
 ## Blocked Items
 
 None.
+
+---
+
+## Phase 11.2: Persona Derivation + Blend ✅
+
+**Status: COMPLETE**
+
+**Tasks completed:**
+1. ~~Build tone_builder.py~~ ✅
+2. ~~Build blender.py~~ ✅
+3. ~~Add admin endpoints~~ ✅
+4. ~~Add safety tests~~ ✅
+5. ~~Create PERSONA_BLEND_PROOF.md~~ ✅
+
+**Files created:**
+- `services/corpus/epstein/tone_builder.py` - Generates epstein_tone.json
+- `services/persona/blender.py` - Compiles persona components
+- `tests/test_tone_builder.py` - Safety validation tests
+- `docs/PERSONA_BLEND_PROOF.md` - 3 sample outputs + verification
+
+**Admin endpoints added:**
+- `GET /api/admin/persona/status` - Now includes blend settings
+- `POST /api/admin/persona/rebuild` - Rebuild compiled persona
+- `PATCH /api/admin/persona/settings` - Toggle EPSTEIN_PERSONA_BLEND, SNARK_LEVEL
+
+**Safety constraints verified:**
+- EPSTEIN_MODE=false (no retrieval) ✅
+- EPSTEIN_PERSONA_BLEND=false by default ✅
+- Hard constraints: no emojis, no hashtags ✅
+- No names, victims, PII, explicit content ✅
+
+**Blend weights:**
+- base_aistein: 0.50
+- ct_voice: 0.25
+- kol_awareness: 0.10
+- epstein_tone: 0.15
+
+---
+
+## Phase 11: Epstein Corpus Ingestion
+
+### Phase 11.1: Deploy + Migrate + Ingest Small Batch ✅
+
+**Status: COMPLETE (visibility improvements added)**
+
+**Actions taken:**
+
+1. **Deployed to Fly.io with new code**
+   - Migration for knowledge_documents and corpus_ingestion_log tables
+   - ContentSanitizer integration
+   - Admin endpoints for corpus management
+
+2. **Database tables created:**
+   - `knowledge_documents`: Stores sanitized summaries, source, doc_id, content_hash
+   - `corpus_ingestion_log`: Tracks ingestion runs with stats
+
+3. **Initial ingestion run:**
+   - Run ID: 6fda4f89-4242-4c31-a0ca-e704f38d8a97
+   - Documents found: 10
+   - Documents ingested: 10
+   - Documents blocked: 0
+   - All documents marked as "clean" (no explicit content)
+
+4. **Admin endpoints verified:**
+   - GET /api/admin/corpus/epstein/status - returns doc counts and last run info
+   - GET /api/admin/corpus/epstein/samples - returns sanitized summaries
+
+5. **Safety constraints verified:**
+   - EPSTEIN_MODE=false
+   - EPSTEIN_PERSONA_BLEND=false
+   - No explicit content, no victim identifiers, no PII stored
+
+6. **Proof document created:** `docs/EPSTEIN_INGEST_PROOF.md`
+
+---
+
+### Phase 11.1.5: Add Ingestion Visibility ✅
+
+**Status: COMPLETE**
+
+**Goal:** Diagnose and fix why only 10 documents were ingested
+
+**Root cause identified:** The JSON reader wasn't handling the nested GitHub export format.
+- analyses.json has 8,186 entries with structure: `item["analysis"]["summary"]`
+- Reader was looking for top-level "summary" field, not nested `item.analysis.summary`
+
+**Step 1: Fix JSON Reader ✅**
+
+Updated `_extract_document_with_stats()` in readers.py to handle nested analysis structure:
+
+```python
+# First, check for nested analysis object (GitHub export format: item.analysis.summary)
+if "analysis" in item and isinstance(item["analysis"], dict):
+    analysis = item["analysis"]
+    # Prefer summary, then significance, then combine both
+    if "summary" in analysis and analysis["summary"]:
+        text = str(analysis["summary"]).strip()
+    elif "significance" in analysis and analysis["significance"]:
+        text = str(analysis["significance"]).strip()
+    # If both exist, combine them
+    if not text and "summary" in analysis and "significance" in analysis:
+        parts = []
+        if analysis.get("significance"):
+            parts.append(str(analysis["significance"]).strip())
+        if analysis.get("summary"):
+            parts.append(str(analysis["summary"]).strip())
+        if parts:
+            text = " ".join(parts)
+```
+
+Also extracts metadata from analysis object: document_type, key_topics, key_people.
+
+**Changes made:**
+
+1. **Updated readers.py:**
+   - Added `FileReadStats` dataclass to track per-file statistics
+   - Added nested analysis handling for GitHub export format
+   - JSON reader now checks `item["analysis"]["summary"]` before top-level fields
+   - Extended text field detection: text, content, body, document, summary, description, details
+   - Added minimum text length check (10 chars)
+
+2. **Updated ingest.py:**
+   - Added `FileStats` dataclass for per-file ingestion statistics
+   - Enhanced `IngestStats` with detailed breakdown fields
+   - Added `IngestResult.summary()` method for human-readable output
+   - Updated `_log_ingestion_run()` to store detailed stats as JSON
+
+3. **Updated CLI script:**
+   - Uses new summary() method
+   - Prints per-file breakdown with all stats
+
+**Files modified:**
+- `apps/api/services/corpus/epstein/readers.py`
+- `apps/api/services/corpus/epstein/ingest.py`
+- `apps/api/services/corpus/epstein/__init__.py`
+- `apps/api/scripts/ingest_epstein_corpus.py`
+
+---
+
+### Phase 11.1.6: CLI Enhancements + Ingestion ✅
+
+**Status: COMPLETE**
+
+**Tasks completed:**
+1. ~~Fix JSON reader for nested analysis format~~ ✅
+2. ~~Add CLI flags for --sources and --ignore-samples~~ ✅
+3. ~~Rerun ingestion with --limit 300~~ ✅
+4. ~~Verify status endpoint shows ~300 ingested~~ ✅
+
+**CLI enhancements added:**
+- `--sources <name>` - Comma-separated list of sources to process (e.g., `--sources epstein_docs,kaggle`)
+- `--ignore-samples` - Skip files containing "sample" in the filename
+
+**Ingestion run results (Run ID: 73d0521e-0c55-4c79-9bd8-533e4e75c953):**
+- Records read: 301
+- Candidates produced: 300
+- **Ingested: 283**
+- **Blocked: 17** (ContentSanitizer working correctly)
+- Duplicates: 0
+- Errors: 0
+- Duration: 56.27s
+
+**Status endpoint verification:**
+```json
+{
+  "documents": {
+    "total": 293,      // 283 new + 10 previous
+    "clean": 289,
+    "redacted": 4,
+    "blocked": 0
+  },
+  "epstein_mode": false,
+  "epstein_persona_blend": false
+}
+```
+
+**Safety constraints verified:**
+- EPSTEIN_MODE=false ✅
+- EPSTEIN_PERSONA_BLEND=false ✅
+- ContentSanitizer blocked 17 documents ✅
+- All stored documents are sanitized summaries only ✅
+
+**Files modified:**
+- `apps/api/scripts/ingest_epstein_corpus.py` (added --sources, --ignore-samples flags)
+- `apps/api/services/corpus/epstein/ingest.py` (added sources/ignore_samples parameters)
+- `apps/api/services/corpus/epstein/readers.py` (fixed nested analysis extraction)
+
+---

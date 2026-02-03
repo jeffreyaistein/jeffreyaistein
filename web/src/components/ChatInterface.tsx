@@ -5,7 +5,6 @@ import { useChat, type ConnectionStatus } from '@/hooks/useChat'
 import { useAvatarDriver } from '@/hooks/useAvatarDriver'
 import { useTTS } from '@/hooks/useTTS'
 import { HologramAvatar, getAvatarMode } from '@/components/HologramAvatar'
-import { DebugPanel } from '@/components/DebugPanel'
 
 // Connection status indicator component
 function ConnectionIndicator({
@@ -234,9 +233,6 @@ function ChatSection({
       </div>
 
       <div className="flex flex-col h-[400px]">
-        {/* Debug panel - only shows when NEXT_PUBLIC_DEBUG=true */}
-        <DebugPanel connectionStatus={connectionStatus} lastError={error} ttsDebugInfo={ttsDebugInfo} />
-
         {/* Error banner */}
         {error && (
           <div className="px-4 py-2 bg-red-900/50 border-b border-red-500/50 text-red-300 text-sm flex justify-between items-center">

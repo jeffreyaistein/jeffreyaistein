@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useChat, type ConnectionStatus } from '@/hooks/useChat'
-import { DebugPanel } from '@/components/DebugPanel'
 
 // Connection status indicator component
 function ConnectionIndicator({
@@ -106,9 +105,6 @@ export function ChatBox() {
 
   return (
     <div className="flex flex-col h-[400px]">
-      {/* Debug panel - only shows when NEXT_PUBLIC_DEBUG=true */}
-      <DebugPanel connectionStatus={connectionStatus} lastError={error} />
-
       {/* Error banner */}
       {error && (
         <div className="px-4 py-2 bg-red-900/50 border-b border-red-500/50 text-red-300 text-sm flex justify-between items-center">

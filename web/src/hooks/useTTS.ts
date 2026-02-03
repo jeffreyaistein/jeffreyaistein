@@ -12,6 +12,16 @@ interface UseTTSOptions {
   onEnd?: () => void
 }
 
+// Debug info for TTS
+interface TTSDebugInfo {
+  voiceEnabled: boolean
+  audioContextState: AudioContextState | 'unavailable'
+  lastHttpStatus: number | null
+  lastBytes: number | null
+  lastPlayError: string | null
+  lastAudioEnded: boolean
+}
+
 interface UseTTSReturn {
   // Voice toggle (user must enable)
   voiceEnabled: boolean
@@ -28,6 +38,9 @@ interface UseTTSReturn {
 
   // Audio element for amplitude analysis
   audioElement: HTMLAudioElement | null
+
+  // Debug info (for NEXT_PUBLIC_DEBUG=true)
+  debugInfo: TTSDebugInfo
 
   // Speak text
   speak: (text: string) => Promise<void>
@@ -75,6 +88,12 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Debug state
+  const [lastHttpStatus, setLastHttpStatus] = useState<number | null>(null)
+  const [lastBytes, setLastBytes] = useState<number | null>(null)
+  const [lastPlayError, setLastPlayError] = useState<string | null>(null)
+  const [lastAudioEnded, setLastAudioEnded] = useState(false)
+
   // Audio element reference
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null)
@@ -100,11 +119,14 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
 
       audio.addEventListener('play', () => {
         setIsSpeaking(true)
+        setLastAudioEnded(false)
         onStart?.()
       })
 
       audio.addEventListener('ended', () => {
         setIsSpeaking(false)
+        setLastAudioEnded(true)
+        console.log('[useTTS] Audio ended')
         onEnd?.()
       })
 
@@ -198,8 +220,12 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     // Stop any current audio
     stop()
 
-    // Clear previous error
+    // Clear previous error and debug state
     setError(null)
+    setLastPlayError(null)
+    setLastHttpStatus(null)
+    setLastBytes(null)
+    setLastAudioEnded(false)
     setIsLoading(true)
 
     try {
@@ -209,6 +235,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       // Determine API URL
       const baseUrl = apiBaseUrl || process.env.NEXT_PUBLIC_API_BASE_URL || ''
       const ttsUrl = `${baseUrl}/api/tts`
+      console.log('[useTTS] Fetching from:', ttsUrl)
 
       // Fetch audio from TTS endpoint
       const response = await fetch(ttsUrl, {
@@ -220,6 +247,10 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
         signal: abortControllerRef.current.signal,
       })
 
+      // Track HTTP status
+      setLastHttpStatus(response.status)
+      console.log('[useTTS] Response status:', response.status)
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.detail || `TTS failed: ${response.status}`)
@@ -227,12 +258,28 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
 
       // Get audio blob
       const audioBlob = await response.blob()
+      setLastBytes(audioBlob.size)
+      console.log('[useTTS] Received audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type)
       const audioUrl = URL.createObjectURL(audioBlob)
 
-      // Play audio
+      // Play audio with specific error handling
       if (audioRef.current) {
         audioRef.current.src = audioUrl
-        await audioRef.current.play()
+        try {
+          await audioRef.current.play()
+          console.log('[useTTS] Audio play() succeeded')
+          setLastPlayError(null)
+        } catch (playErr) {
+          // Capture specific play() errors for debugging
+          const playError = playErr as Error
+          const errorName = playError.name || 'UnknownError'
+          const errorMsg = `Play failed: ${errorName} - ${playError.message}`
+          console.error('[useTTS] play() error:', errorName, playError.message)
+          setLastPlayError(errorMsg)
+          setError(errorMsg)
+          onError?.(errorMsg)
+          return
+        }
       }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -241,13 +288,23 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       }
 
       const errorMessage = err instanceof Error ? err.message : 'TTS failed'
-      console.error('[useTTS] Error:', errorMessage)
+      console.error('[useTTS] Fetch error:', errorMessage)
       setError(errorMessage)
       onError?.(errorMessage)
     } finally {
       setIsLoading(false)
     }
   }, [voiceEnabled, apiBaseUrl, stop, onError])
+
+  // Build debug info object
+  const debugInfo: TTSDebugInfo = {
+    voiceEnabled,
+    audioContextState,
+    lastHttpStatus,
+    lastBytes,
+    lastPlayError,
+    lastAudioEnded,
+  }
 
   return {
     voiceEnabled,
@@ -258,6 +315,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     isLoading,
     error,
     audioElement,
+    debugInfo,
     speak,
     stop,
   }

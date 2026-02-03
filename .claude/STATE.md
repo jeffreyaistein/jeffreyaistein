@@ -1618,3 +1618,69 @@ Also extracts metadata from analysis object: document_type, key_topics, key_peop
 - `apps/api/services/corpus/epstein/readers.py` (fixed nested analysis extraction)
 
 ---
+
+## System Documentation Audit ✅
+
+**Status: COMPLETE**
+
+**Date:** 2026-02-03
+
+**Goal:** Create comprehensive system documentation for all components.
+
+### Deliverables Created
+
+| Document | Description | Commit |
+|----------|-------------|--------|
+| `docs/SYSTEM_MAP.md` | Architecture overview with mermaid diagram | `edc80d7` |
+| `docs/COMPONENT_INVENTORY.md` | Complete inventory of all files/components | `edc80d7` |
+| `docs/RUNTIME_CONFIG_REFERENCE.md` | All env vars and runtime settings | `e8143c8` |
+| `docs/OPERATIONS_GUIDE.md` | Day-to-day operations runbook | `f7ab47a` |
+
+### SYSTEM_MAP.md Contents
+
+- Infrastructure overview table (Vercel, Fly, Postgres, Redis, APIs)
+- Mermaid architecture diagram with all components
+- Data flow diagrams:
+  - Web Chat flow
+  - X Bot flow
+  - Self-Style Proposals flow
+  - Corpus Ingestion flow
+- Entry points summary (routes, endpoints, workers, scripts)
+- Database tables by phase
+- Safe mode posture
+- Key safety constraints
+
+### COMPONENT_INVENTORY.md Contents
+
+- Web frontend: 15 components, 3 hooks, config files
+- API endpoints: All public and admin routes
+- Services: 9 service modules with file lists
+- Workers: 4 background workers with triggers
+- Database: 16 tables across 5 migrations
+- Scripts: 9 CLI scripts
+- Tests: 20+ test files
+- Dead code/placeholders identified
+
+### RUNTIME_CONFIG_REFERENCE.md Contents
+
+- Backend env vars (50+ settings in Fly.io secrets)
+- Frontend env vars (10+ NEXT_PUBLIC_* vars)
+- Runtime settings (DB-stored, admin API toggles)
+- Admin API examples for all setting changes
+- Safe production configuration
+
+### OPERATIONS_GUIDE.md Contents
+
+- Quick reference table for common operations
+- Health check endpoints and commands
+- Log access (Fly.io and Vercel)
+- X bot operations (drafts, approval, kill switch)
+- Style management (versions, activation, rollback)
+- Deployment procedures (Fly.io and Vercel)
+- Database operations and queries
+- Emergency procedures
+- Troubleshooting common issues
+- Scheduled maintenance checklists
+- CLI scripts reference
+
+---

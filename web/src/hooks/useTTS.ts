@@ -80,6 +80,18 @@ function saveVoiceEnabled(enabled: boolean): void {
 export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
   const { apiBaseUrl, onError, onStart, onEnd } = options
 
+  // Store callbacks in refs to avoid useEffect re-runs
+  const onErrorRef = useRef(onError)
+  const onStartRef = useRef(onStart)
+  const onEndRef = useRef(onEnd)
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    onErrorRef.current = onError
+    onStartRef.current = onStart
+    onEndRef.current = onEnd
+  }, [onError, onStart, onEnd])
+
   // Voice toggle - load from localStorage, default off
   const [voiceEnabled, setVoiceEnabledState] = useState(false)
   const [audioContextState, setAudioContextState] = useState<AudioContextState | 'unavailable'>('unavailable')
@@ -202,14 +214,14 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       audio.addEventListener('play', () => {
         setIsSpeaking(true)
         setLastAudioEnded(false)
-        onStart?.()
+        onStartRef.current?.()
       })
 
       audio.addEventListener('ended', () => {
         setIsSpeaking(false)
         setLastAudioEnded(true)
         console.log('[useTTS] Audio ended')
-        onEnd?.()
+        onEndRef.current?.()
       })
 
       audio.addEventListener('pause', () => {
@@ -220,7 +232,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
         console.error('[useTTS] Audio error:', e)
         setIsSpeaking(false)
         setError('Audio playback failed')
-        onError?.('Audio playback failed')
+        onErrorRef.current?.('Audio playback failed')
       })
 
       audioRef.current = audio
@@ -232,12 +244,14 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
         audioRef.current.pause()
         audioRef.current.src = ''
       }
-      // Close AudioContext on unmount
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
+      // Close AudioContext on unmount (only if not already closed)
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {
+          // Ignore close errors
+        })
       }
     }
-  }, [onStart, onEnd, onError])
+  }, []) // Empty deps - only run on mount/unmount
 
   // Set voice enabled with localStorage persistence and AudioContext resume
   const setVoiceEnabled = useCallback(async (enabled: boolean) => {
@@ -263,7 +277,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       } catch (err) {
         console.error('[useTTS] Failed to resume AudioContext:', err)
         setError('Failed to enable audio')
-        onError?.('Failed to enable audio')
+        onErrorRef.current?.('Failed to enable audio')
         return
       }
     }
@@ -271,7 +285,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
     setVoiceEnabledState(enabled)
     saveVoiceEnabled(enabled)
     setError(null)
-  }, [onError])
+  }, [])
 
   // Toggle voice (wraps setVoiceEnabled)
   const toggleVoice = useCallback(() => {
@@ -386,7 +400,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
               console.error('[useTTS] play() retry error:', errorMsg)
               setLastPlayError(errorMsg)
               setError(errorMsg)
-              onError?.(errorMsg)
+              onErrorRef.current?.(errorMsg)
               return
             }
           }
@@ -396,7 +410,7 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
           console.error('[useTTS] play() error:', errorName, playError.message)
           setLastPlayError(errorMsg)
           setError(errorMsg)
-          onError?.(errorMsg)
+          onErrorRef.current?.(errorMsg)
           return
         }
       }
@@ -409,12 +423,12 @@ export function useTTS(options: UseTTSOptions = {}): UseTTSReturn {
       const errorMessage = err instanceof Error ? err.message : 'TTS failed'
       console.error('[useTTS] Fetch error:', errorMessage)
       setError(errorMessage)
-      onError?.(errorMessage)
+      onErrorRef.current?.(errorMessage)
     } finally {
       setIsLoading(false)
       speakLockRef.current = false
     }
-  }, [voiceEnabled, apiBaseUrl, stop, onError])
+  }, [voiceEnabled, apiBaseUrl, stop])
 
   // Build debug info object
   const debugInfo: TTSDebugInfo = {

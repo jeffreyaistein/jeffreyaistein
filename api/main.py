@@ -831,6 +831,185 @@ async def get_agent_stats():
 
 
 # ===========================================
+# Public Conversation Archive
+# ===========================================
+
+
+@app.get("/api/archive/conversations")
+async def public_list_conversations(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=50),
+):
+    """
+    Public endpoint to list conversations for the archive.
+    Returns conversations sorted by most recent activity (newest first).
+    """
+    offset = (page - 1) * page_size
+
+    # Subquery for message counts and last active time
+    msg_stats = (
+        select(
+            Message.conversation_id,
+            func.count(Message.id).label("message_count"),
+            func.max(Message.created_at).label("last_active_at"),
+        )
+        .group_by(Message.conversation_id)
+        .subquery()
+    )
+
+    # Get the first user message for preview
+    first_msg = (
+        select(
+            Message.conversation_id,
+            Message.content,
+            func.row_number().over(
+                partition_by=Message.conversation_id,
+                order_by=Message.created_at.asc()
+            ).label("rn")
+        )
+        .where(Message.role == "user")
+        .subquery()
+    )
+
+    first_msg_filtered = (
+        select(
+            first_msg.c.conversation_id,
+            first_msg.c.content.label("first_message"),
+        )
+        .where(first_msg.c.rn == 1)
+        .subquery()
+    )
+
+    # Main query - only show conversations with at least 2 messages (user + assistant)
+    base_query = (
+        select(
+            Conversation.id,
+            Conversation.title,
+            Conversation.created_at,
+            func.coalesce(msg_stats.c.message_count, 0).label("message_count"),
+            func.coalesce(msg_stats.c.last_active_at, Conversation.created_at).label("last_active_at"),
+            first_msg_filtered.c.first_message,
+        )
+        .outerjoin(msg_stats, Conversation.id == msg_stats.c.conversation_id)
+        .outerjoin(first_msg_filtered, Conversation.id == first_msg_filtered.c.conversation_id)
+        .where(func.coalesce(msg_stats.c.message_count, 0) >= 2)  # At least user + assistant
+    )
+
+    # Get total count
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total_result = await db.execute(count_query)
+    total_count = total_result.scalar() or 0
+
+    # Apply ordering (newest first) and pagination
+    query = (
+        base_query
+        .order_by(func.coalesce(msg_stats.c.last_active_at, Conversation.created_at).desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    # Format response
+    items = []
+    for row in rows:
+        # Create preview from first message (truncate to 120 chars)
+        preview = ""
+        if row.first_message:
+            preview = row.first_message[:120]
+            if len(row.first_message) > 120:
+                preview += "..."
+
+        # Generate title from first message if no title
+        title = row.title
+        if not title and row.first_message:
+            title = row.first_message[:50]
+            if len(row.first_message) > 50:
+                title += "..."
+
+        items.append({
+            "id": str(row.id),
+            "title": title or "Conversation",
+            "preview": preview,
+            "message_count": row.message_count,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "last_active_at": row.last_active_at.isoformat() if row.last_active_at else None,
+        })
+
+    total_pages = (total_count + page_size - 1) // page_size if total_count > 0 else 1
+
+    return {
+        "items": items,
+        "page": page,
+        "page_size": page_size,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "has_prev": page > 1,
+        "has_next": page < total_pages,
+    }
+
+
+@app.get("/api/archive/conversations/{conversation_id}")
+async def public_get_conversation(
+    conversation_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Public endpoint to get a single conversation with all messages.
+    """
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conversation ID")
+
+    # Get conversation
+    conv_result = await db.execute(
+        select(Conversation).where(Conversation.id == conv_uuid)
+    )
+    conversation = conv_result.scalar_one_or_none()
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Get all messages in chronological order
+    msg_result = await db.execute(
+        select(Message)
+        .where(Message.conversation_id == conv_uuid)
+        .order_by(Message.created_at.asc())
+    )
+    messages = msg_result.scalars().all()
+
+    # Format messages
+    items = []
+    for msg in messages:
+        items.append({
+            "id": str(msg.id),
+            "role": msg.role,
+            "content": msg.content,
+            "created_at": msg.created_at.isoformat() if msg.created_at else None,
+        })
+
+    # Generate title from first user message if no title
+    title = conversation.title
+    if not title and items:
+        first_user = next((m for m in items if m["role"] == "user"), None)
+        if first_user:
+            title = first_user["content"][:50]
+            if len(first_user["content"]) > 50:
+                title += "..."
+
+    return {
+        "id": str(conversation.id),
+        "title": title or "Conversation",
+        "created_at": conversation.created_at.isoformat() if conversation.created_at else None,
+        "messages": items,
+        "message_count": len(items),
+    }
+
+
+# ===========================================
 # Text-to-Speech
 # ===========================================
 

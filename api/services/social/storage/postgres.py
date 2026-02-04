@@ -464,6 +464,35 @@ class PostgresPostRepository(PostRepository):
             )
             return result.scalar() or 0
 
+    async def list_recent(self, limit: int = 10) -> list[PostEntry]:
+        """List recent posts (for conversation tracking)."""
+        async with await self._get_session() as session:
+            result = await session.execute(
+                text("""
+                    SELECT * FROM x_posts
+                    WHERE status = 'posted' AND tweet_id IS NOT NULL
+                    ORDER BY posted_at DESC
+                    LIMIT :limit
+                """),
+                {"limit": limit}
+            )
+            rows = result.mappings().fetchall()
+
+            from services.social.types import PostType
+            return [
+                PostEntry(
+                    id=row["id"],
+                    tweet_id=row["tweet_id"],
+                    text=row["text"],
+                    post_type=PostType(row["post_type"]),
+                    reply_to_id=row["reply_to_id"],
+                    status=PostStatus(row["status"]),
+                    created_at=row["created_at"],
+                    posted_at=row["posted_at"],
+                )
+                for row in rows
+            ]
+
 
 class PostgresReplyLogRepository(ReplyLogRepository):
     """Postgres-backed reply log repository for idempotency."""

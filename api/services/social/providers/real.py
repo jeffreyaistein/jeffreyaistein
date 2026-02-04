@@ -442,73 +442,101 @@ class RealXProvider(XProvider):
         """
         Fetch replies to the bot's tweets using the Search API.
 
-        Uses GET /2/tweets/search/recent with query "to:{username}"
-        to find tweets that are replies to the bot, even without explicit @mention.
+        Uses conversation_id tracking to find replies in threads started by the bot.
+        Falls back to searching for @mentions that are replies.
         """
+        # Import here to avoid circular imports
+        from services.social.storage import get_post_repository
+
         client = await self._get_client()
         url = f"{X_API_BASE}/tweets/search/recent"
 
-        # Get bot username for search query
-        bot_username = os.getenv("X_BOT_USERNAME", "JeffreyAIstein")
+        # Get recent conversation IDs from bot's posts
+        post_repo = get_post_repository()
+        try:
+            recent_posts = await post_repo.list_recent(limit=10)  # Last 10 posts
+            conversation_ids = [
+                p.tweet_id for p in recent_posts
+                if p.tweet_id and p.status.value == "posted"
+            ]
+        except Exception as e:
+            logger.warning("fetch_replies_failed_to_get_posts", error=str(e))
+            conversation_ids = []
 
-        # Search for tweets that are replies to the bot
-        # "to:username" finds tweets that are replies to that user
-        query = f"to:{bot_username} -from:{bot_username}"
+        all_tweets = []
 
-        params = {
-            "query": query,
-            "max_results": min(max_results, 100),  # API max is 100
-            "tweet.fields": self.TWEET_FIELDS,
-            "user.fields": self.USER_FIELDS,
-            "expansions": self.EXPANSIONS,
-        }
+        # Search each conversation for new replies
+        for conv_id in conversation_ids:
+            query = f"conversation_id:{conv_id} -from:{self.bot_user_id}"
 
-        if since_id:
-            params["since_id"] = since_id
+            params = {
+                "query": query,
+                "max_results": min(max_results, 100),
+                "tweet.fields": self.TWEET_FIELDS,
+                "user.fields": self.USER_FIELDS,
+                "expansions": self.EXPANSIONS,
+            }
 
-        logger.debug(
-            "x_api_fetch_replies",
-            query=query,
-            since_id=since_id,
-            max_results=max_results,
-        )
+            if since_id:
+                params["since_id"] = since_id
 
-        response = await client.get(
-            url,
-            headers=self._get_bearer_headers(),
-            params=params,
-        )
+            logger.debug(
+                "x_api_fetch_conversation_replies",
+                conversation_id=conv_id,
+                query=query,
+            )
 
-        # Log raw response for debugging
-        logger.debug(
-            "x_api_fetch_replies_raw_response",
-            status_code=response.status_code,
-            response_text=response.text[:500] if response.text else None,
-        )
+            try:
+                response = await client.get(
+                    url,
+                    headers=self._get_bearer_headers(),
+                    params=params,
+                )
 
-        result = await self._handle_response(response, "fetch_replies")
+                # Log raw response for debugging
+                logger.debug(
+                    "x_api_fetch_replies_raw_response",
+                    conversation_id=conv_id,
+                    status_code=response.status_code,
+                    response_text=response.text[:500] if response.text else None,
+                )
 
-        # Parse users from includes
-        users_by_id: dict[str, XUser] = {}
-        if "includes" in result and "users" in result["includes"]:
-            for user_data in result["includes"]["users"]:
-                user = self._parse_user(user_data)
-                users_by_id[user.id] = user
+                result = await self._handle_response(response, f"fetch_replies({conv_id})")
 
-        # Parse tweets
-        tweets = []
-        if "data" in result:
-            for tweet_data in result["data"]:
-                tweet = self._parse_tweet(tweet_data, users_by_id)
-                tweets.append(tweet)
+                # Parse users from includes
+                users_by_id: dict[str, XUser] = {}
+                if "includes" in result and "users" in result["includes"]:
+                    for user_data in result["includes"]["users"]:
+                        user = self._parse_user(user_data)
+                        users_by_id[user.id] = user
+
+                # Parse tweets
+                if "data" in result:
+                    for tweet_data in result["data"]:
+                        tweet = self._parse_tweet(tweet_data, users_by_id)
+                        # Skip bot's own tweets
+                        if tweet.author_id != self.bot_user_id:
+                            all_tweets.append(tweet)
+
+            except XRateLimitError:
+                logger.warning("x_api_fetch_replies_rate_limited", conversation_id=conv_id)
+                break  # Stop searching if rate limited
+            except Exception as e:
+                logger.warning(
+                    "x_api_fetch_conversation_failed",
+                    conversation_id=conv_id,
+                    error=str(e),
+                )
+                continue
 
         logger.info(
             "x_api_replies_fetched",
-            count=len(tweets),
+            count=len(all_tweets),
+            conversations_searched=len(conversation_ids),
             since_id=since_id,
         )
 
-        return tweets
+        return all_tweets
 
     async def fetch_thread_context(
         self,

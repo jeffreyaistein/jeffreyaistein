@@ -161,6 +161,11 @@ class PostRepository(ABC):
         """Count posts made in the last hour."""
         pass
 
+    @abstractmethod
+    async def list_recent(self, limit: int = 10) -> list["PostEntry"]:
+        """List recent posts (for conversation tracking)."""
+        pass
+
 
 class DraftRepository(ABC):
     """Repository for drafts awaiting approval."""

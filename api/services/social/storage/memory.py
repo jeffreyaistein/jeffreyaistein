@@ -140,6 +140,15 @@ class InMemoryPostRepository(PostRepository):
             if e.posted_at and e.posted_at >= one_hour_ago
         )
 
+    async def list_recent(self, limit: int = 10) -> list[PostEntry]:
+        """List recent posts (for conversation tracking)."""
+        posts = [
+            e for e in self._entries.values()
+            if e.status == PostStatus.POSTED and e.tweet_id
+        ]
+        posts.sort(key=lambda e: e.posted_at or datetime.min, reverse=True)
+        return posts[:limit]
+
     def clear(self):
         """Clear all entries (for testing)."""
         self._entries.clear()

@@ -1748,3 +1748,25 @@ Type-check passed
 **File Modified:** `apps/web/next.config.js`
 
 ---
+
+## TTS AudioContext Fix
+
+**Date:** 2026-02-03
+**Status:** COMPLETE
+
+**Issue:** "Cannot close a closed AudioContext" error looping repeatedly, audio playback failing.
+
+**Root Cause:**
+1. useEffect had `[onStart, onEnd, onError]` deps causing constant re-runs
+2. AudioContext.close() called without checking if already closed
+
+**Fix:**
+1. Store callbacks in refs to avoid useEffect dep changes
+2. Check `audioContextRef.current.state !== 'closed'` before closing
+3. Wrap close() in try-catch
+
+**File Modified:** `apps/web/src/hooks/useTTS.ts`
+
+**Commit:** `0dd4190`
+
+---

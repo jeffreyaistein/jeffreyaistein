@@ -2479,6 +2479,230 @@ async def admin_corpus_epstein_disable(
     }
 
 
+# ===========================================
+# Conversation Archive (Admin)
+# ===========================================
+
+
+@app.get("/api/admin/conversations")
+async def admin_list_conversations(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=200),
+    channel: Optional[str] = Query(None, description="Filter by channel (web, x)"),
+    q: Optional[str] = Query(None, description="Search in title or messages"),
+):
+    """
+    List all conversations with pagination (admin only).
+
+    Returns conversations sorted by most recent activity (last message).
+    """
+    await verify_admin_key(request)
+
+    offset = (page - 1) * page_size
+
+    # Subquery for message counts and last active time
+    msg_stats = (
+        select(
+            Message.conversation_id,
+            func.count(Message.id).label("message_count"),
+            func.max(Message.created_at).label("last_active_at"),
+        )
+        .group_by(Message.conversation_id)
+        .subquery()
+    )
+
+    # Get the last message content for snippet using window function
+    last_msg = (
+        select(
+            Message.conversation_id,
+            Message.content,
+            Message.role,
+            func.row_number().over(
+                partition_by=Message.conversation_id,
+                order_by=Message.created_at.desc()
+            ).label("rn")
+        )
+        .subquery()
+    )
+
+    last_msg_filtered = (
+        select(
+            last_msg.c.conversation_id,
+            last_msg.c.content.label("last_content"),
+            last_msg.c.role.label("last_role"),
+        )
+        .where(last_msg.c.rn == 1)
+        .subquery()
+    )
+
+    # Main query
+    base_query = (
+        select(
+            Conversation.id,
+            Conversation.title,
+            Conversation.created_at,
+            Conversation.user_id,
+            func.coalesce(msg_stats.c.message_count, 0).label("message_count"),
+            func.coalesce(msg_stats.c.last_active_at, Conversation.created_at).label("last_active_at"),
+            last_msg_filtered.c.last_content,
+            last_msg_filtered.c.last_role,
+        )
+        .outerjoin(msg_stats, Conversation.id == msg_stats.c.conversation_id)
+        .outerjoin(last_msg_filtered, Conversation.id == last_msg_filtered.c.conversation_id)
+    )
+
+    # Apply search filter if provided
+    if q:
+        search_term = f"%{q}%"
+        # Search in title or in any message content
+        msg_search = (
+            select(Message.conversation_id)
+            .where(Message.content.ilike(search_term))
+            .distinct()
+            .subquery()
+        )
+        base_query = base_query.where(
+            (Conversation.title.ilike(search_term)) |
+            (Conversation.id.in_(select(msg_search.c.conversation_id)))
+        )
+
+    # Get total count
+    count_query = select(func.count()).select_from(base_query.subquery())
+    total_result = await db.execute(count_query)
+    total_count = total_result.scalar() or 0
+
+    # Apply ordering and pagination
+    query = (
+        base_query
+        .order_by(func.coalesce(msg_stats.c.last_active_at, Conversation.created_at).desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    # Format response
+    items = []
+    for row in rows:
+        snippet = ""
+        if row.last_content:
+            # Truncate to 100 chars
+            snippet = row.last_content[:100]
+            if len(row.last_content) > 100:
+                snippet += "..."
+            if row.last_role:
+                snippet = f"[{row.last_role}] {snippet}"
+
+        items.append({
+            "id": str(row.id),
+            "title": row.title,
+            "created_at": row.created_at.isoformat() if row.created_at else None,
+            "last_active_at": row.last_active_at.isoformat() if row.last_active_at else None,
+            "message_count": row.message_count,
+            "snippet": snippet,
+        })
+
+    has_next = (offset + len(items)) < total_count
+
+    return {
+        "items": items,
+        "page": page,
+        "page_size": page_size,
+        "total_count": total_count,
+        "has_next": has_next,
+    }
+
+
+@app.get("/api/admin/conversations/{conversation_id}/messages")
+async def admin_get_conversation_messages(
+    conversation_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(100, ge=1, le=500),
+    order: str = Query("asc", regex="^(asc|desc)$"),
+):
+    """
+    Get messages for a conversation with pagination (admin only).
+
+    Default ordering is chronological (oldest first, asc).
+    Use order=desc for newest first.
+    """
+    await verify_admin_key(request)
+
+    try:
+        conv_uuid = uuid.UUID(conversation_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid conversation ID format")
+
+    offset = (page - 1) * page_size
+
+    # Get conversation metadata
+    conv_result = await db.execute(
+        select(Conversation).where(Conversation.id == conv_uuid)
+    )
+    conversation = conv_result.scalar_one_or_none()
+
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+
+    # Get last active time from messages
+    last_active_result = await db.execute(
+        select(func.max(Message.created_at))
+        .where(Message.conversation_id == conv_uuid)
+    )
+    last_active_at = last_active_result.scalar() or conversation.created_at
+
+    # Get total message count
+    count_result = await db.execute(
+        select(func.count(Message.id))
+        .where(Message.conversation_id == conv_uuid)
+    )
+    total_count = count_result.scalar() or 0
+
+    # Get messages with pagination
+    order_clause = Message.created_at.asc() if order == "asc" else Message.created_at.desc()
+
+    msg_result = await db.execute(
+        select(Message)
+        .where(Message.conversation_id == conv_uuid)
+        .order_by(order_clause)
+        .offset(offset)
+        .limit(page_size)
+    )
+    messages = msg_result.scalars().all()
+
+    # Format response
+    items = []
+    for msg in messages:
+        items.append({
+            "id": str(msg.id),
+            "role": msg.role,
+            "content": msg.content,
+            "created_at": msg.created_at.isoformat() if msg.created_at else None,
+            "metadata": msg.metadata_ or {},
+        })
+
+    has_next = (offset + len(items)) < total_count
+
+    return {
+        "conversation": {
+            "id": str(conversation.id),
+            "title": conversation.title,
+            "created_at": conversation.created_at.isoformat() if conversation.created_at else None,
+            "last_active_at": last_active_at.isoformat() if last_active_at else None,
+        },
+        "items": items,
+        "page": page,
+        "page_size": page_size,
+        "total_count": total_count,
+        "has_next": has_next,
+    }
+
+
 async def set_runtime_setting(db: AsyncSession, key: str, value) -> None:
     """Set a runtime setting in the database."""
     import json

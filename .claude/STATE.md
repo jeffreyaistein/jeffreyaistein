@@ -1619,6 +1619,64 @@ Also extracts metadata from analysis object: document_type, key_topics, key_peop
 
 ---
 
+## Conversation Archive Feature ✅
+
+**Date:** 2026-02-03
+**Status:** COMPLETE
+
+**Goal:** Add admin-only Conversation Archive for ALL website chats (web channel) with pagination.
+
+### Backend Endpoints ✅
+
+**Endpoints created in `apps/api/main.py` (lines 2482-2703):**
+
+1. **GET /api/admin/conversations**
+   - Lists all conversations with pagination
+   - Parameters: `page` (default 1), `page_size` (default 50, max 200), `channel`, `q` (search)
+   - Returns: items, page, page_size, total_count, has_next
+   - Each item includes: id, title, created_at, last_active_at, message_count, snippet
+   - Search queries title and message content
+
+2. **GET /api/admin/conversations/{conversation_id}/messages**
+   - Gets messages for a specific conversation with pagination
+   - Parameters: `page` (default 1), `page_size` (default 100, max 500), `order` (asc/desc)
+   - Returns: conversation metadata, items, pagination info
+   - Each message includes: id, role, content, created_at, metadata
+
+**Security:** Both endpoints use `verify_admin_key(request)` - requires X-Admin-Key header.
+
+### Admin UI Page ✅
+
+**File created:** `apps/web/src/app/admin/archive/page.tsx`
+
+**Features:**
+- Admin key authentication (stored in localStorage)
+- Conversation list with pagination (50 per page)
+- Search functionality (searches title and message content)
+- Conversation detail view with all messages
+- Message pagination (100 per page)
+- Matrix-themed UI consistent with site design
+- Responsive layout (mobile-friendly)
+
+**Route:** `/admin/archive`
+
+**Build verification:** Type-check passed
+
+### Proof Documentation ✅
+
+**File created:** `apps/docs/CONVERSATION_ARCHIVE_PROOF.md`
+
+### Deployment Needed
+
+**Backend:**
+```bash
+cd apps/api && fly deploy --app jeffreyaistein
+```
+
+**Frontend:** Auto-deploys via Vercel on git push
+
+---
+
 ## System Documentation Audit ✅
 
 **Status: COMPLETE**

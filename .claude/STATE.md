@@ -1733,3 +1733,18 @@ Type-check passed
 - CLI scripts reference
 
 ---
+
+## TTS Frontend Fix
+
+**Date:** 2026-02-03
+**Status:** COMPLETE
+
+**Issue:** TTS Error showing when Voice is enabled. Frontend calling `/api/tts` on Vercel (405) instead of Fly.io backend.
+
+**Root Cause:** `useTTS.ts` uses `NEXT_PUBLIC_API_BASE_URL` but `next.config.js` wasn't exporting it.
+
+**Fix:** Updated `next.config.js` to export `NEXT_PUBLIC_API_BASE_URL` with fallback to `NEXT_PUBLIC_API_URL`.
+
+**File Modified:** `apps/web/next.config.js`
+
+---

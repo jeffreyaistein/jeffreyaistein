@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { ChatInterface } from '@/components/ChatInterface'
 import { TokenPanel } from '@/components/TokenPanel'
 import { StatsPanel } from '@/components/StatsPanel'
@@ -24,6 +25,12 @@ export default function Home() {
             JEFFREY AISTEIN
           </h1>
           <div className="flex items-center gap-6">
+            <Link
+              href="/archive"
+              className="text-sm text-matrix-green hover:text-matrix-cyan transition-colors"
+            >
+              ARCHIVE
+            </Link>
             <SocialLinks />
             <div className="text-sm opacity-70">
               <span className="text-matrix-green">STATUS:</span>{' '}

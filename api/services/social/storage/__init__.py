@@ -37,6 +37,7 @@ from services.social.storage.base import (
     UserLimitRepository,
     # Setting keys
     SETTING_LAST_MENTION_ID,
+    SETTING_LAST_REPLY_ID,
     SETTING_LAST_TIMELINE_POST,
     SETTING_NEXT_TIMELINE_POST,
     SETTING_SAFE_MODE,
@@ -258,6 +259,7 @@ __all__ = [
     "reset_all_repositories",
     # Setting keys
     "SETTING_LAST_MENTION_ID",
+    "SETTING_LAST_REPLY_ID",
     "SETTING_LAST_TIMELINE_POST",
     "SETTING_NEXT_TIMELINE_POST",
     "SETTING_SAFE_MODE",

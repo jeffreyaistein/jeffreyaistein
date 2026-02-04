@@ -186,6 +186,31 @@ class XProvider(ABC):
         pass
 
     @abstractmethod
+    async def fetch_replies(
+        self,
+        since_id: Optional[str] = None,
+        max_results: int = 100,
+    ) -> list[XTweet]:
+        """
+        Fetch replies to the bot's tweets (not just @mentions).
+
+        Uses the Search API to find tweets that are replies to the bot,
+        even if they don't explicitly @mention the bot in the text.
+
+        Args:
+            since_id: Only return tweets newer than this ID
+            max_results: Maximum number of tweets to return (default 100)
+
+        Returns:
+            List of XTweet objects that are replies to the bot, newest first
+
+        Raises:
+            XRateLimitError: If rate limit exceeded
+            XAuthError: If authentication fails
+        """
+        pass
+
+    @abstractmethod
     async def health_check(self) -> bool:
         """
         Check if the provider is healthy and can make API calls.

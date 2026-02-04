@@ -434,6 +434,75 @@ class RealXProvider(XProvider):
 
         return tweets
 
+    async def fetch_replies(
+        self,
+        since_id: Optional[str] = None,
+        max_results: int = 100,
+    ) -> list[XTweet]:
+        """
+        Fetch replies to the bot's tweets using the Search API.
+
+        Uses GET /2/tweets/search/recent with query "to:{username}"
+        to find tweets that are replies to the bot, even without explicit @mention.
+        """
+        client = await self._get_client()
+        url = f"{X_API_BASE}/tweets/search/recent"
+
+        # Get bot username for search query
+        bot_username = os.getenv("X_BOT_USERNAME", "JeffreyAIstein")
+
+        # Search for tweets that are replies to the bot
+        # "to:username" finds tweets that are replies to that user
+        query = f"to:{bot_username} -from:{bot_username}"
+
+        params = {
+            "query": query,
+            "max_results": min(max_results, 100),  # API max is 100
+            "tweet.fields": self.TWEET_FIELDS,
+            "user.fields": self.USER_FIELDS,
+            "expansions": self.EXPANSIONS,
+        }
+
+        if since_id:
+            params["since_id"] = since_id
+
+        logger.debug(
+            "x_api_fetch_replies",
+            query=query,
+            since_id=since_id,
+            max_results=max_results,
+        )
+
+        response = await client.get(
+            url,
+            headers=self._get_bearer_headers(),
+            params=params,
+        )
+
+        result = await self._handle_response(response, "fetch_replies")
+
+        # Parse users from includes
+        users_by_id: dict[str, XUser] = {}
+        if "includes" in result and "users" in result["includes"]:
+            for user_data in result["includes"]["users"]:
+                user = self._parse_user(user_data)
+                users_by_id[user.id] = user
+
+        # Parse tweets
+        tweets = []
+        if "data" in result:
+            for tweet_data in result["data"]:
+                tweet = self._parse_tweet(tweet_data, users_by_id)
+                tweets.append(tweet)
+
+        logger.info(
+            "x_api_replies_fetched",
+            count=len(tweets),
+            since_id=since_id,
+        )
+
+        return tweets
+
     async def fetch_thread_context(
         self,
         tweet_id: str,

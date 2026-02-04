@@ -25,6 +25,7 @@ from services.social.storage import (
     ReplyLogRepository,
     SettingsRepository,
     SETTING_LAST_MENTION_ID,
+    SETTING_LAST_REPLY_ID,
     SETTING_SAFE_MODE,
     SETTING_APPROVAL_REQUIRED,
     get_draft_repository,
@@ -161,62 +162,121 @@ class IngestionLoop:
 
     async def _poll_once(self) -> dict:
         """Internal poll implementation."""
-        # Get last processed mention ID
+        # Poll both mentions AND replies (replies don't require @mention)
+        mention_stats = await self._poll_mentions()
+        reply_stats = await self._poll_replies()
+
+        # Combine stats
+        stats = {
+            "fetched": mention_stats["fetched"] + reply_stats["fetched"],
+            "stored": mention_stats["stored"] + reply_stats["stored"],
+            "filtered": mention_stats["filtered"] + reply_stats["filtered"],
+            "duplicates": mention_stats["duplicates"] + reply_stats["duplicates"],
+        }
+
+        if stats["fetched"] == 0:
+            logger.debug("ingestion_no_new_interactions")
+
+        return stats
+
+    async def _poll_mentions(self) -> dict:
+        """Poll for new @mentions."""
         last_mention_id = await self.settings_repo.get(SETTING_LAST_MENTION_ID)
 
         logger.debug(
-            "ingestion_polling",
+            "ingestion_polling_mentions",
             since_id=last_mention_id,
         )
 
-        # Fetch new mentions
         mentions = await self.x_provider.fetch_mentions(
             since_id=last_mention_id,
             max_results=100,
         )
 
+        stats = await self._process_tweets(mentions, "mention", SETTING_LAST_MENTION_ID)
+
+        if not mentions:
+            logger.debug("ingestion_no_new_mentions")
+
+        return stats
+
+    async def _poll_replies(self) -> dict:
+        """Poll for replies to bot's tweets (without @mention)."""
+        last_reply_id = await self.settings_repo.get(SETTING_LAST_REPLY_ID)
+
+        logger.debug(
+            "ingestion_polling_replies",
+            since_id=last_reply_id,
+        )
+
+        try:
+            replies = await self.x_provider.fetch_replies(
+                since_id=last_reply_id,
+                max_results=100,
+            )
+        except Exception as e:
+            # Search API might not be available on all tiers
+            logger.warning(
+                "ingestion_replies_fetch_failed",
+                error=str(e),
+            )
+            return {"fetched": 0, "stored": 0, "filtered": 0, "duplicates": 0}
+
+        stats = await self._process_tweets(replies, "reply", SETTING_LAST_REPLY_ID)
+
+        if not replies:
+            logger.debug("ingestion_no_new_replies")
+
+        return stats
+
+    async def _process_tweets(
+        self,
+        tweets: list,
+        source: str,
+        last_id_setting: str,
+    ) -> dict:
+        """Process a list of tweets (mentions or replies)."""
         stats = {
-            "fetched": len(mentions),
+            "fetched": len(tweets),
             "stored": 0,
             "filtered": 0,
             "duplicates": 0,
         }
 
-        if not mentions:
-            logger.debug("ingestion_no_new_mentions")
+        if not tweets:
             return stats
 
-        self.total_fetched += len(mentions)
+        self.total_fetched += len(tweets)
         quality_threshold = get_quality_threshold()
         newest_id = None
 
-        for mention in mentions:
+        for tweet in tweets:
             # Track newest for pagination
-            if newest_id is None or mention.id > newest_id:
-                newest_id = mention.id
+            if newest_id is None or tweet.id > newest_id:
+                newest_id = tweet.id
 
             # Check if already in inbox (dedup)
-            if await self.inbox_repo.exists(mention.id):
+            if await self.inbox_repo.exists(tweet.id):
                 stats["duplicates"] += 1
                 self.total_duplicates += 1
                 continue
 
             # Check if already replied (idempotency)
-            if await self.reply_log_repo.has_replied(mention.id):
+            if await self.reply_log_repo.has_replied(tweet.id):
                 stats["duplicates"] += 1
                 self.total_duplicates += 1
                 continue
 
             # Get author for quality scoring
-            author = mention.author
+            author = tweet.author
             if not author:
                 try:
-                    author = await self.x_provider.get_user(mention.author_id)
+                    author = await self.x_provider.get_user(tweet.author_id)
                 except XProviderError:
                     logger.warning(
-                        "ingestion_author_fetch_failed",
-                        tweet_id=mention.id,
-                        author_id=mention.author_id,
+                        f"ingestion_{source}_author_fetch_failed",
+                        tweet_id=tweet.id,
+                        author_id=tweet.author_id,
                     )
                     continue
 
@@ -226,8 +286,8 @@ class IngestionLoop:
             # Filter low-quality accounts
             if not quality_result.passed:
                 logger.info(
-                    "ingestion_filtered_low_quality",
-                    tweet_id=mention.id,
+                    f"ingestion_{source}_filtered_low_quality",
+                    tweet_id=tweet.id,
                     author=author.username,
                     score=quality_result.score,
                     threshold=quality_threshold,
@@ -238,17 +298,17 @@ class IngestionLoop:
 
             # Store in inbox
             entry = InboxEntry(
-                id=mention.id,
-                tweet=mention,
-                author_id=mention.author_id,
+                id=tweet.id,
+                tweet=tweet,
+                author_id=tweet.author_id,
                 quality_score=quality_result.score,
                 received_at=self.clock.now(),
             )
             await self.inbox_repo.save(entry)
 
             logger.info(
-                "ingestion_mention_stored",
-                tweet_id=mention.id,
+                f"ingestion_{source}_stored",
+                tweet_id=tweet.id,
                 author=author.username,
                 quality_score=quality_result.score,
             )
@@ -257,20 +317,20 @@ class IngestionLoop:
 
             # Generate draft reply immediately
             try:
-                await self._generate_draft_reply(mention, author)
+                await self._generate_draft_reply(tweet, author)
             except Exception as e:
                 logger.exception(
                     "ingestion_draft_generation_failed",
-                    tweet_id=mention.id,
+                    tweet_id=tweet.id,
                     error=str(e),
                 )
 
-        # Update last mention ID for pagination
+        # Update last ID for pagination
         if newest_id:
-            await self.settings_repo.set(SETTING_LAST_MENTION_ID, newest_id)
+            await self.settings_repo.set(last_id_setting, newest_id)
 
         logger.info(
-            "ingestion_poll_complete",
+            f"ingestion_{source}_poll_complete",
             **stats,
         )
 

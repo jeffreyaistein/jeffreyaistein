@@ -58,6 +58,7 @@ class MockXProvider(XProvider):
         self._tweets: dict[str, XTweet] = {}
         self._users: dict[str, XUser] = {}
         self._mentions: list[str] = []  # Tweet IDs that mention the bot
+        self._replies: list[str] = []  # Tweet IDs that are replies to the bot (no @mention)
         self._bot_user_id = "bot_user_123"
         self._bot_username = "jeffrey_aistein"
 
@@ -231,6 +232,7 @@ class MockXProvider(XProvider):
         """Clear all mock data (keeps fixtures)."""
         self._tweets.clear()
         self._mentions.clear()
+        self._replies.clear()
         self._call_count = 0
         self._tweet_counter = 0
         self._load_fixtures()
@@ -267,6 +269,53 @@ class MockXProvider(XProvider):
         mentions.sort(key=lambda t: t.created_at, reverse=True)
 
         return mentions[:max_results]
+
+    async def fetch_replies(
+        self,
+        since_id: Optional[str] = None,
+        max_results: int = 100,
+    ) -> list[XTweet]:
+        """Fetch replies to bot's tweets from mock store."""
+        await self._maybe_delay()
+        self._check_rate_limit()
+
+        logger.debug(
+            "mock_fetch_replies",
+            since_id=since_id,
+            max_results=max_results,
+            total_replies=len(self._replies),
+        )
+
+        replies = []
+        for tweet_id in self._replies:
+            tweet = self._tweets.get(tweet_id)
+            if not tweet:
+                continue
+
+            # Filter by since_id (assuming IDs are sortable)
+            if since_id and tweet.id <= since_id:
+                continue
+
+            replies.append(tweet)
+
+        # Sort by created_at descending (newest first)
+        replies.sort(key=lambda t: t.created_at, reverse=True)
+
+        return replies[:max_results]
+
+    def add_reply(self, tweet: XTweet) -> XTweet:
+        """
+        Add a tweet as a reply to the bot (without @mention).
+
+        Args:
+            tweet: XTweet replying to the bot
+
+        Returns:
+            The added tweet
+        """
+        self._tweets[tweet.id] = tweet
+        self._replies.append(tweet.id)
+        return tweet
 
     async def fetch_thread_context(
         self,

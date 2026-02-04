@@ -279,6 +279,7 @@ class SettingsRepository(ABC):
 
 # Well-known setting keys
 SETTING_LAST_MENTION_ID = "last_mention_id"
+SETTING_LAST_REPLY_ID = "last_reply_id"  # For replies without @mention
 SETTING_LAST_TIMELINE_POST = "last_timeline_post_at"
 SETTING_NEXT_TIMELINE_POST = "next_timeline_post_at"
 

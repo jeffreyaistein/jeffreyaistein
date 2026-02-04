@@ -333,7 +333,7 @@ function ChatSection({
               />
             </div>
             <div className="flex items-center gap-2">
-              {ttsError && (
+              {voiceEnabled && ttsError && (
                 <span className="text-xs text-red-400" title={ttsError}>
                   TTS Error
                 </span>

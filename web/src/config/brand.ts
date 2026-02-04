@@ -7,7 +7,7 @@
 
 export const brand = {
   name: "Jeffrey AIstein",
-  tagline: "Memory-aware AGI-style agent experience",
+  tagline: "know some niggas that went to that island. why the fuck would you go to that island?",
   version: "0.1.0",
 
   // Domain (pending DNS setup)

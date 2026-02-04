@@ -256,6 +256,42 @@ Invoke-RestMethod -Uri "https://jeffreyaistein.fly.dev/api/admin/kill_switch" `
 
 ---
 
+## Phase 8: Web Frontend Verification
+
+### Test 8.1: Token Metrics Panel
+**URL**: https://jeffreyaistein.vercel.app
+
+**Check**:
+- [ ] Token Metrics panel shows status indicator (INDEXING or LIVE)
+- [ ] NO "Phase 5" text visible
+- [ ] If INDEXING: Shows "Indexing token data..." message
+- [ ] If LIVE: Shows market cap, holders, 24h volume, meter
+
+**Verification**:
+```powershell
+Invoke-RestMethod -Uri "https://jeffreyaistein.fly.dev/api/token/metrics"
+```
+Expected: Returns `state: "indexing"` or `state: "live"`
+
+### Test 8.2: AGI Bot Stats Panel
+**URL**: https://jeffreyaistein.vercel.app
+
+**Check**:
+- [ ] AGI Bot Stats panel shows LIVE status indicator
+- [ ] NO "Phase 6" text visible
+- [ ] Shows real message counts (MESSAGES IN, MESSAGES OUT)
+- [ ] Shows CONVERSATIONS count
+- [ ] Shows LEARNING PROGRESS meter
+- [ ] Shows "Last updated" timestamp
+
+**Verification**:
+```powershell
+Invoke-RestMethod -Uri "https://jeffreyaistein.fly.dev/api/stats/agent"
+```
+Expected: Returns real counts from database
+
+---
+
 ## Go-Live Checklist (When Ready to Post)
 
 Before disabling safe mode:

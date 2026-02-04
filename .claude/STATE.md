@@ -1770,3 +1770,49 @@ Type-check passed
 **Commit:** `0dd4190`
 
 ---
+
+## TASK 1: Token Metrics Panel Live
+
+**Date:** 2026-02-03
+**Status:** COMPLETE
+
+**Goal:** Remove "Phase 5" placeholder, make Token Metrics panel fetch real data.
+
+**Changes:**
+
+1. **Backend** (`apps/api/main.py`):
+   - Updated `/api/token/metrics` to include `state` field ("indexing" | "live")
+   - Currently returns `state: "indexing"` until on-chain data source connected
+
+2. **Frontend** (`apps/web/src/components/TokenPanel.tsx`):
+   - Removed "Live data coming in Phase 5" placeholder
+   - Added fetch from `/api/token/metrics` with 30s refresh
+   - Shows "Indexing token data..." when `state === "indexing"`
+   - Shows live metrics when `state === "live"`
+   - Proper loading/error states
+
+---
+
+## TASK 2: AGI Bot Stats Panel Live
+
+**Date:** 2026-02-03
+**Status:** COMPLETE
+
+**Goal:** Remove "Phase 6" placeholder, make AGI Bot Stats panel show real data.
+
+**Changes:**
+
+1. **Backend** (`apps/api/main.py`):
+   - Updated `/api/stats/agent` to query real data from database
+   - Returns: messages_processed, messages_replied, total_conversations, channel_breakdown, learning_score
+   - Learning score: 0-100 scale based on total interactions (interactions / 1000 * 100)
+   - Includes `updated_at` timestamp from last message
+
+2. **Frontend** (`apps/web/src/components/StatsPanel.tsx`):
+   - Removed "Live stats coming in Phase 6" placeholder
+   - Added fetch from `/api/stats/agent` with 30s refresh
+   - Shows real message counts from database
+   - Shows "Last updated" timestamp
+   - Proper loading/error states
+
+---

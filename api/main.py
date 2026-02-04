@@ -797,8 +797,17 @@ async def chat_sse(
 
 @app.get("/api/token/metrics")
 async def get_token_metrics():
-    """Get current token metrics."""
+    """
+    Get current token metrics.
+
+    State values:
+    - "indexing": Token data is being indexed (no live data yet)
+    - "live": Live data available from on-chain source
+    """
+    # TODO: Integrate with Solana RPC or DEX API for live data
+    # For now, return indexing state until data source is connected
     return {
+        "state": "indexing",  # "indexing" | "live"
         "market_cap": 0,
         "market_cap_formatted": "$0",
         "holders": 0,
@@ -813,20 +822,57 @@ async def get_token_metrics():
 
 
 # ===========================================
-# Agent Stats (Phase 6 placeholder)
+# Agent Stats (Public)
 # ===========================================
 
 
 @app.get("/api/stats/agent")
-async def get_agent_stats():
-    """Get agent statistics."""
+async def get_agent_stats(db: AsyncSession = Depends(get_db)):
+    """
+    Get agent statistics from the database.
+
+    Returns aggregated counts (no private content exposed).
+    """
+    from datetime import datetime
+
+    # Count total messages by role
+    user_count_result = await db.execute(
+        select(func.count(Message.id)).where(Message.role == "user")
+    )
+    user_messages = user_count_result.scalar() or 0
+
+    assistant_count_result = await db.execute(
+        select(func.count(Message.id)).where(Message.role == "assistant")
+    )
+    assistant_messages = assistant_count_result.scalar() or 0
+
+    # Count conversations
+    conv_count_result = await db.execute(
+        select(func.count(Conversation.id))
+    )
+    total_conversations = conv_count_result.scalar() or 0
+
+    # Get last message timestamp
+    last_msg_result = await db.execute(
+        select(Message.created_at)
+        .order_by(Message.created_at.desc())
+        .limit(1)
+    )
+    last_msg = last_msg_result.scalar()
+
+    # Calculate a simple "learning score" based on activity
+    # Scale: 0-100, based on total interactions
+    total_interactions = user_messages + assistant_messages
+    learning_score = min(100, int((total_interactions / 1000) * 100)) if total_interactions > 0 else 0
+
     return {
-        "messages_processed": 0,
-        "messages_replied": 0,
-        "channel_breakdown": {"web": 0, "x": 0},
-        "learning_score": 0,
-        "semantic_memories_count": 0,
-        "updated_at": None,
+        "state": "live",
+        "messages_processed": user_messages,
+        "messages_replied": assistant_messages,
+        "total_conversations": total_conversations,
+        "channel_breakdown": {"web": total_conversations, "x": 0},  # All web for now
+        "learning_score": learning_score,
+        "updated_at": last_msg.isoformat() if last_msg else None,
     }
 
 

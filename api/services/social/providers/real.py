@@ -479,6 +479,13 @@ class RealXProvider(XProvider):
             params=params,
         )
 
+        # Log raw response for debugging
+        logger.debug(
+            "x_api_fetch_replies_raw_response",
+            status_code=response.status_code,
+            response_text=response.text[:500] if response.text else None,
+        )
+
         result = await self._handle_response(response, "fetch_replies")
 
         # Parse users from includes
